@@ -23,7 +23,7 @@ static char arg_buffer[32];
 /* read an argument return 0 on error */
 unsigned get_arg(unsigned *i_ptr, unsigned type) {
 	unsigned i = *i_ptr;
-	char c = type;
+	unsigned char c = type;
 
 	if (type == 0) c = type = buffer[i++];
 	arg_buffer[0] = 0;
@@ -102,7 +102,7 @@ const char *read_line(void) {
 		}
 		if (buffer[0] == '.') {
 			unsigned i = 1;
-			char c;
+			unsigned char c;
 			while (isspace(buffer[i])) ++i;
 			c = buffer[i++];
 			if (c == 0) continue;
@@ -206,7 +206,7 @@ void parse_args(unsigned i) {
 
 
 	for(;;) {
-		char c;
+		unsigned char c;
 		unsigned quote = 0;
 		while (isspace(buffer[i])) ++i;
 
@@ -335,7 +335,7 @@ static unsigned analyze(unsigned *i_ptr) {
 	unsigned j;
 	unsigned escape = 0;
 	unsigned kill = 0;
-	char c;
+	unsigned char c;
 
 	for (; ;) {
 		j = i;
@@ -346,7 +346,8 @@ static unsigned analyze(unsigned *i_ptr) {
 			*i_ptr = j;
 			return escape;
 		}
-		if (c < 0x20 && c != '\t') { buffer[j] = ZWSPACE; escape = 1; } // ? 
+		if (c == ' ' || c == '\t') continue;
+		if (c >= 0x80 || c < 0x20) { buffer[j] = ZWSPACE; escape = 1; continue; }
 		if (c != '\\') continue;
 		c = buffer[i++];
 		switch(c) {
@@ -445,7 +446,7 @@ static void parse_text(void) {
 	unsigned i;
 	unsigned j;
 	for (i = 0, j = 0;;) {
-		char c = buffer[i++];
+		unsigned char c = buffer[i++];
 		if (c == ZWSPACE) continue;
 		// todo...
 		out_buffer[j++] = c;

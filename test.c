@@ -5,6 +5,8 @@
 const char *special_char(const char *cp) { return ""; }
 int main(void) {
 
+	man(stdin);
+#if 0
 	read_init(stdin);
 
 	for(;;) {
@@ -20,5 +22,6 @@ int main(void) {
 			}
 		}
 	}
+	#endif
 	return 1;
 }

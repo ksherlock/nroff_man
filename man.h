@@ -62,3 +62,4 @@ const char *read_text(void);
 const char *read_line(void);
 
 void read_init(FILE *fp);
+void man(FILE *fp);

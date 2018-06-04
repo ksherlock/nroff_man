@@ -7,7 +7,7 @@ static char buffer[4096];
 
 static char *fonts(unsigned f1, unsigned f2) {
 	unsigned i,j,k;
-	char c;
+	unsigned char c;
 
 	type = tkTEXT;
 	for (i = 0, j = 0; i < argc; ++i) {
@@ -24,7 +24,7 @@ static char *fonts(unsigned f1, unsigned f2) {
 static char *font(unsigned f) {
 	int i,j,k;
 	buffer[0] = f;
-	char c;
+	unsigned char c;
 
 	type = tkTEXT;
 	for(i = 0, j = 1; i <argc; ++i) {
