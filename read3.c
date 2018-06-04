@@ -10,6 +10,7 @@ static int in;
 static int ti;
 static int nf;
 static int PD;
+static int TP;
 static int line;
 static int font;
 static int prev_font;
@@ -23,6 +24,7 @@ static unsigned buffer_flip_flop;
 
 
 #define IN_DEFAULT 4
+#define SS_DEFAULT 2
 
 static void set_font(unsigned new_font) {
 	if (new_font == FONT_P) new_font = prev_font;
@@ -52,20 +54,84 @@ static void reset_font(void) {
 	font = prev_font = FONT_R;
 }
 
+
+static int indent(int amt) {
+	int i;
+	if (amt == -1) {
+		amt = ti >= 0 ? ti : in;
+	}
+	for (i = 0; i < amt; ++i) fputc(' ', stdout);
+	return amt;
+}
+
+static void set_indent(int new_in, int new_ti) {
+	int lm;
+	in = new_in;
+	ti = new_ti;
+	lm = new_ti >= 0 ? new_ti : new_in;
+	width = rm - lm;
+}
+
+static unsigned print(const char *cp, int fi) {
+	unsigned i;
+	unsigned char prev = 0;
+	unsigned length = 0;
+	for (i = 0; ;++i) {
+		unsigned char c = cp[i];
+		if (c == 0) return length;
+		switch(c) {
+			case FONT_R: case FONT_B: case FONT_I: case FONT_P:
+				set_font(c);
+				break;
+			case ZWSPACE: break;
+			case NBSPACE: fputc(' ', stdout); length++; break;
+			case ' ': case '\t':
+				if (fi) {
+					c = ' ';
+					if (prev != ' ') { fputc(' ', stdout); length++; }
+				} else {
+					fputc(c, stdout); length++;
+				}
+				break;
+			default: fputc(c, stdout); length++;
+		}
+		prev = c;
+	}
+}
+
+static unsigned xstrlen(const char *cp) {
+
+	unsigned i;
+	unsigned char prev = 0;
+	unsigned length = 0;
+	for (i = 0; ;++i) {
+		unsigned char c = cp[i];
+		if (c == 0) return length;
+		switch(c) {
+			case FONT_R: case FONT_B: case FONT_I: case FONT_P:
+			case ZWSPACE:
+				break;
+			case NBSPACE: length++; break;
+			case ' ': case '\t':
+				c = ' ';
+				if (prev != ' ') length++;
+				break;
+			default: length++;
+		}
+		prev = c;
+	}
+}
+
 static void flush(unsigned justify) {
 	unsigned i;
-	unsigned lm;
 	int padding;
 	int holes;
 
 	if (!buffer_width) return;
 
-	lm = ti >= 0 ? ti : in;
-	ti = -1;
-
 	// removing trailing whitespace.
 	i = buffer_offset - 1;
-	while(isspace(buffer[i])) { --i; --buffer_width; }
+	while(isspace(buffer[i]) || buffer[i] == NBSPACE) { --i; --buffer_width; }
 	buffer[++i] = 0;
 
 	padding = width - buffer_width;
@@ -76,7 +142,8 @@ static void flush(unsigned justify) {
 	padding += holes;
 
 	// indent.
-	for (i = 0; i < lm; ++i) fputc(' ', stdout);
+	indent(-1);
+	set_indent(in, -1);
 
 	for (i = 0; ; ++i) {
 		unsigned char c = buffer[i];
@@ -110,12 +177,11 @@ static void flush(unsigned justify) {
 		}
 	}
 
-	fputc('\n', stdout);
+	fputc('\n', stdout); ++line;
 	buffer_width = 0;
 	buffer_offset = 0;
 	buffer_words = 0;
 	buffer[0] = 0;
-	width = rm - in;
 	return;
 
 }
@@ -158,19 +224,19 @@ static void append(const char *cp) {
 				}
 				for (j = start; j < end; ++j)
 					buffer[k++] = cp[j];
-				buffer[k++] = ' ';
-				buffer[k] = 0;
 
-				xlen++; /* space */
 				if (j > 1) {
 					/* if word ends w/ [.?!] should add extra space */
 					unsigned char c = cp[j-1];
 					if (c == '.' || c == '?' || c == '!') {
+						buffer[k++] = NBSPACE; /* stripped if end */
 						xlen++;
-						buffer[k++] = ' ';
-						buffer[k] = 0;
 					}
 				}
+
+				buffer[k++] = ' ';
+				buffer[k] = 0;
+				xlen++; /* space */
 				buffer_width += xlen;
 				buffer_words++;
 
@@ -187,17 +253,11 @@ static void append(const char *cp) {
 	}
 }
 
-static void set_indent(int new_in, int new_ti) {
-	int lm;
-	in = new_in;
-	ti = new_ti;
-	lm = new_ti >= 0 ? new_ti : new_in;
-	width = rm - lm;
-}
 
 void man(FILE *fp) {
 
 
+	unsigned trap = 0;
 	in = 0;
 	ti = -1;
 	PD = 1;
@@ -224,7 +284,6 @@ void man(FILE *fp) {
 		if (type == tkEOF) {
 			break;
 		}
-
 
 		switch(type) {
 			case tkTH:
@@ -257,8 +316,10 @@ void man(FILE *fp) {
 				/* tagged paragraph */
 				flush(0);
 				reset_font();
-				set_indent(IN_DEFAULT + 4, IN_DEFAULT);
+				TP = 4;
+				set_indent(IN_DEFAULT + TP, IN_DEFAULT);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
+				trap = type;
 				break;
 
 			case tkNF:
@@ -279,24 +340,71 @@ void man(FILE *fp) {
 
 			case tkSH:
 			case tkSS:
+				trap = 0;
 				/* next-line */
 				flush(0);
 				reset_font();
-				set_indent(IN_DEFAULT + 4, -1);
+				set_indent(IN_DEFAULT, -1);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
-				break;
-
-			case tkTEXT:
-				if (nf) {
-					int lm = ti >= 0 ? ti : in;
-					ti = -1;
-					for (x = 0; x < lm; ++x) fputc(' ', stdout);
-					fprintf(stdout, "%.*s\n", width, cp);
+				if (argc) {
+					int i;
+					if (type == tkSS) indent(SS_DEFAULT);
+					set_font(FONT_B);
+					for (i = 0; i < argc; ++i) {
+						if (i) fputc(' ', stdout);
+						print(argv[i], 1);
+					}
+					reset_font();
+					fputc('\n', stdout); ++line;
 				} else {
-					// check for .SH / .SS trap!
-					append(cp);
+					trap = type;
 				}
 				break;
+
+			case tkTEXT: {
+				unsigned xline = line;
+				if (nf) {
+					indent(-1);
+					set_indent(in, -1);
+					print(cp, 0);
+					fputc('\n', stdout); ++line;
+					break;
+				}
+				if (!cp[0]) continue;
+				switch(trap) {
+					case tkSS:
+						set_indent(IN_DEFAULT, SS_DEFAULT);
+						set_font(FONT_B);
+						break;
+
+					case tkSH:
+						set_indent(IN_DEFAULT, 0);
+						set_font(FONT_B);
+						break;
+				}
+				append(cp);
+				switch(trap) {
+					case tkSS:
+					case tkSH:
+						flush(0);
+						reset_font();
+						set_indent(IN_DEFAULT, -1);
+						break;
+					case tkTP:
+						if (line > xline || buffer_width > in) {
+							flush(0);
+						} else {
+							while (buffer_width < TP) {
+								buffer[buffer_offset++] = NBSPACE;
+								buffer_width++;
+							}
+							buffer[buffer_offset] = 0;
+						}
+						break;
+				}
+				trap = 0;
+				break;
+			}
 		}
 
 
