@@ -5,6 +5,7 @@
 const char *special_char(const char *cp) { return ""; }
 int main(void) {
 
+	man_init();
 	man(stdin);
 #if 0
 	read_init(stdin);

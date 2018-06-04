@@ -18,6 +18,7 @@ static char *fonts(unsigned f1, unsigned f2) {
 	}
 
 	buffer[j++] = FONT_R;
+	buffer[j++] = 0;
 	return buffer;
 }
 
@@ -34,6 +35,7 @@ static char *font(unsigned f) {
 		while ((c = cp[k++])) buffer[j++] = c;
 	}
 	buffer[j++] = FONT_R;
+	buffer[j++] = 0;
 	return buffer;
 }
 

@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <err.h>
-
+#include <stdlib.h>
+#include <termcap.h>
 #include "man.h"
 
 static int width;
@@ -11,6 +12,7 @@ static int ti;
 static int nf;
 static int PD;
 static int TP;
+static int IP;
 static int line;
 static int font;
 static int prev_font;
@@ -23,8 +25,70 @@ static unsigned buffer_offset;
 static unsigned buffer_flip_flop;
 
 
-#define IN_DEFAULT 4
-#define SS_DEFAULT 2
+#define IN_DEFAULT 7
+#define SS_DEFAULT 3
+
+static char *bold_begin = NULL;
+static char *bold_end = NULL;
+static char *italic_begin = NULL;
+static char *italic_end = NULL;
+
+static char tcap_buffer[1024];
+static unsigned tcap_buffer_offset = 0;
+
+static int tputs_helper(int c) {
+	if (c) tcap_buffer[tcap_buffer_offset++] = c;
+	return 1;
+}
+
+void man_init() {
+	static char buffer[1024];
+	static char buffer2[1024];
+	char *term;
+	char *cp;
+	char *pcap;
+	int ok;
+
+	term = getenv("TERM");
+	if (!term || !*term) {
+		warnx("TERM undefined."); return;
+	}
+
+	ok = tgetent(buffer, term);
+	if (ok < 0) {
+		warnx("No termcap for %s", term);
+		return;
+	}
+
+	tcap_buffer_offset = 0;
+
+	pcap = buffer2;
+	cp = tgetstr("us", &pcap);
+	if (cp) {
+		italic_begin = tcap_buffer + tcap_buffer_offset;
+		tputs(cp, 0, tputs_helper);
+		tcap_buffer[tcap_buffer_offset++] = 0;
+	}
+	cp = tgetstr("ue", &pcap);
+	if (cp) {
+		italic_end = tcap_buffer + tcap_buffer_offset;
+		tputs(cp, 0, tputs_helper);
+		tcap_buffer[tcap_buffer_offset++] = 0;
+	}
+	cp = tgetstr("so", &pcap);
+	if (cp) {
+		bold_begin = tcap_buffer + tcap_buffer_offset;
+		tputs(cp, 0, tputs_helper);
+		tcap_buffer[tcap_buffer_offset++] = 0;
+	}
+	cp = tgetstr("se", &pcap);
+	if (cp) {
+		bold_end = tcap_buffer + tcap_buffer_offset;
+		tputs(cp, 0, tputs_helper);
+		tcap_buffer[tcap_buffer_offset++] = 0;
+	}
+
+}
 
 static void set_font(unsigned new_font) {
 	if (new_font == FONT_P) new_font = prev_font;
@@ -34,13 +98,19 @@ static void set_font(unsigned new_font) {
 	// disable current font.
 	switch(font) {
 		case FONT_B:
+			if (bold_end) fputs(bold_end, stdout);
+			break;
 		case FONT_I:
+			if (italic_end) fputs(italic_end, stdout);
 			break;
 	}
 	font = new_font;
 	switch(font) {
 		case FONT_B:
+			if (bold_begin) fputs(bold_begin, stdout);
+			break;
 		case FONT_I:
+				if (italic_begin) fputs(italic_begin, stdout);
 			break;
 	}
 }
@@ -48,7 +118,10 @@ static void set_font(unsigned new_font) {
 static void reset_font(void) {
 	switch(font) {
 		case FONT_B:
+			if (bold_end) fputs(bold_end, stdout);
+			break;
 		case FONT_I:
+			if (italic_end) fputs(italic_end, stdout);
 			break;
 	}
 	font = prev_font = FONT_R;
@@ -122,6 +195,19 @@ static unsigned xstrlen(const char *cp) {
 	}
 }
 
+static void pd() {
+	unsigned i;
+	for (i = 0; i < PD; ++i) {
+		fputc('\n', stdout);
+		++line;
+	}
+}
+
+static void newline() {
+	fputc('\n', stdout);
+	++line;
+}
+
 static void flush(unsigned justify) {
 	unsigned i;
 	int padding;
@@ -136,7 +222,7 @@ static void flush(unsigned justify) {
 
 	padding = width - buffer_width;
 	holes = buffer_words - 1;
-	if (padding <= 0) justify = 0;
+	if (padding <= 0 || holes <= 0) justify = 0;
 
 	buffer_flip_flop = !buffer_flip_flop;
 	padding += holes;
@@ -261,6 +347,8 @@ void man(FILE *fp) {
 	in = 0;
 	ti = -1;
 	PD = 1;
+	IP = 7;
+	TP = 7;
 	line = 1;
 	nf = 0;
 
@@ -284,6 +372,7 @@ void man(FILE *fp) {
 		if (type == tkEOF) {
 			break;
 		}
+		if (type != tkTEXT) trap = 0;
 
 		switch(type) {
 			case tkTH:
@@ -298,10 +387,33 @@ void man(FILE *fp) {
 				break;
 			case tkIP:
 				/* indented paragraph */
+				/* IP [tag [width]] */
 				flush(0);
 				reset_font();
-				set_indent(IN_DEFAULT, IN_DEFAULT + 4);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
+				if (argc >= 2) {
+					/* set IP width... */
+				}
+
+				if (argc >= 1) {
+					set_indent(IN_DEFAULT + IP, IN_DEFAULT);
+					append(argv[0]);
+					/* same logic as TP trap */
+					if (buffer_width >= IP) flush(0);
+					else {
+						unsigned i;
+						for (i = 0; i < buffer_offset; ++i)
+							if (isspace(buffer[i])) buffer[i] = NBSPACE;
+						for(i = buffer_width; i < IP; ++i) {
+							buffer[buffer_offset++] = NBSPACE;
+							buffer_width++;
+						}
+						buffer[buffer_offset] = 0;
+						buffer_words--;
+					}
+				} else {
+					set_indent(IN_DEFAULT + IP, -1);
+				}
 				break;
 
 			case tkHP:
@@ -349,12 +461,12 @@ void man(FILE *fp) {
 				if (argc) {
 					int i;
 					if (type == tkSS) indent(SS_DEFAULT);
-					set_font(FONT_B);
+					//set_font(FONT_B);
 					for (i = 0; i < argc; ++i) {
 						if (i) fputc(' ', stdout);
 						print(argv[i], 1);
 					}
-					reset_font();
+					//reset_font();
 					fputc('\n', stdout); ++line;
 				} else {
 					trap = type;
@@ -374,12 +486,12 @@ void man(FILE *fp) {
 				switch(trap) {
 					case tkSS:
 						set_indent(IN_DEFAULT, SS_DEFAULT);
-						set_font(FONT_B);
+						//set_font(FONT_B);
 						break;
 
 					case tkSH:
 						set_indent(IN_DEFAULT, 0);
-						set_font(FONT_B);
+						//set_font(FONT_B);
 						break;
 				}
 				append(cp);
@@ -387,20 +499,23 @@ void man(FILE *fp) {
 					case tkSS:
 					case tkSH:
 						flush(0);
-						reset_font();
+						//reset_font();
 						set_indent(IN_DEFAULT, -1);
 						break;
 					case tkTP:
-						if (line > xline || buffer_width > in) {
-							flush(0);
-						} else {
-							while (buffer_width < TP) {
+						if (buffer_width >= TP) flush(0);
+						else {
+							unsigned i;
+							for (i = 0; i < buffer_offset; ++i)
+								if (isspace(buffer[i])) buffer[i] = NBSPACE;
+							for (i = buffer_width; i < TP; ++i) {
 								buffer[buffer_offset++] = NBSPACE;
 								buffer_width++;
 							}
-							buffer[buffer_offset] = 0;
+							buffer_words--;
+							buffer[buffer_offset] = 0;			
 						}
-						break;
+
 				}
 				trap = 0;
 				break;
