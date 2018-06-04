@@ -54,8 +54,8 @@ unsigned get_arg(unsigned *i_ptr, unsigned type) {
 		*i_ptr = i;
 		return 2;
 	}
-	buffer[0] = c;
-	buffer[1] = 0;
+	arg_buffer[0] = c;
+	arg_buffer[1] = 0;
 	*i_ptr = i;
 	return 1;
 }
@@ -200,124 +200,7 @@ break;
 
 
 
-void parse_args(unsigned i) {
-	unsigned j = 0;
-	argc = 0;
 
-
-	for(;;) {
-		unsigned char c;
-		unsigned quote = 0;
-		while (isspace(buffer[i])) ++i;
-
-		c = buffer[i];
-		if (c == 0) goto _break;
-		if (c == '"') { quote = 1; ++i; }
-		argv[argc++] = out_buffer + j;
-
-		for(;;) {
-
-			c = buffer[i++];
-			if (c == 0) goto _break;
-			if (c == ZWSPACE) continue;
-			if (quote && c == '"') {
-				if (buffer[i] == '"') {
-					out_buffer[j++] = '"';
-					++i;
-					continue;
-				}
-				break;
-			}
-			if (!quote && isspace(c)) {
-				break;
-			}
-
-			if (c == '\\') {
-				//...
-				c = buffer[i++];
-				switch(c) {
-					case 0: goto _break;
-
-					case '&': case '|': case '^': case '%':
-						//out_buffer[j++] = ZWSPACE; break;
-						break;
-						/* \% is a hyphenation point. */
-					case ' ': case '0':
-						out_buffer[j++] = NBSPACE; break; /* non-paddable */
-					case 'e': out_buffer[j++] = '\\'; break;
-					case '~': out_buffer[j++] = NBSPACE; break; /* paddable */
-					case '"': goto _break; break; /* comment */
-					case 't': out_buffer[j++] = '\t'; break;
-
-					case '{': case '}': case 'd': case 'u': case 'p':
-					case 'z':
-						break;
-
-					case '(': {
-						unsigned k = 0;
-						const char *cp;
-						if (!get_arg(&i, '(')) goto _break;
-						cp = special_char(arg_buffer);
-						while ((c = cp[k++])) out_buffer[j++] = c;
-						break;
-					}
-					case '*':
-						/* pre-defined strings.. */
-						/* \*X or \*(XX  \*[...] */
-						if (!get_arg(&i, 0)) goto _break;
-						break;
-
-					case '[': {
-						/* [name] - not yet supported. */
-						for (;;) {
-							c = buffer[i++];
-							if (c == 0) goto _break;
-							if (c == ']') break;
-						}
-						break;
-					}
-
-					case 'f': {
-						/* \fC?[BIRP] */
-						/* \fC?[321] */
-						/* \f(BI */
-						if (buffer[i] == 'C') ++i;
-						if (!get_arg(&i, 0)) goto _break;
-						// todo...
-						break;
-					}
-					case 'F': case 'g': case 'k': case 'M': case 'm': 
-					case 'n': case 'V': case 'Y':
-						if (!get_arg(&i, 0)) goto _break;
-						break;
-
-					case 'A': case 'B': case 'b': case 'C': case 'D': 
-					case 'H': case 'h': case 'L': case 'l': case 'N': 
-					case 'o': case 'R': case 'S': case 's': case 'v': 
-					case 'w': case 'X': case 'x': case 'Z':
-						{
-							/* A'string', etc */
-							c = buffer[i++]; if (c == 0) goto _break;
-							for(;;) {
-								c = buffer[i++];
-								if (c == 0) goto _break;
-								if (c == '\'') break;
-							}
-							break;
-						}
-					default: out_buffer[j++] = c; break;
-				}
-				continue;
-			}
-			out_buffer[j++] = c;
-		}
-		out_buffer[j++] = 0;
-	}
-
-_break:
-	out_buffer[j++] = 0;
-	argv[argc] = NULL;
-}
 
 /*
  * 3 things...
@@ -442,15 +325,229 @@ invalid:
 	return 0x04 | escape;
 }
 
+void parse_args(unsigned i) {
+	unsigned j = 0;
+	argc = 0;
+
+
+	for(;;) {
+		unsigned char c;
+		unsigned quote = 0;
+		while (isspace(buffer[i])) ++i;
+
+		c = buffer[i];
+		if (c == 0) goto _break;
+		if (c == '"') { quote = 1; ++i; }
+		argv[argc++] = out_buffer + j;
+
+		for(;;) {
+
+			c = buffer[i++];
+			if (c == 0) goto _break;
+			if (c == ZWSPACE) continue; // don't strip -- needed for .\~ etc,
+			if (quote && c == '"') {
+				if (buffer[i] == '"') {
+					out_buffer[j++] = '"';
+					++i;
+					continue;
+				}
+				break;
+			}
+			if (!quote && isspace(c)) {
+				break;
+			}
+
+			if (c != '\\') {
+				out_buffer[j++] = c;
+				continue;
+			}
+
+
+			c = buffer[i++];
+			switch(c) {
+				case 0: goto _break;
+
+				case '&': case '|': case '^': case '%':
+					//out_buffer[j++] = ZWSPACE; break;
+					break;
+					/* \% is a hyphenation point. */
+				case ' ': case '0':
+					out_buffer[j++] = NBSPACE; break; /* non-paddable */
+				case 'e': out_buffer[j++] = '\\'; break;
+				case '~': out_buffer[j++] = NBSPACE; break; /* paddable */
+				case '"': goto _break; break; /* comment */
+				case 't': out_buffer[j++] = '\t'; break;
+
+				case '{': case '}': case 'd': case 'u': case 'p':
+				case 'z':
+					break;
+
+				case '(': {
+					unsigned k = 0;
+					const char *cp;
+					if (!get_arg(&i, '(')) goto _break;
+					cp = special_char(arg_buffer);
+					while ((c = cp[k++])) out_buffer[j++] = c;
+					break;
+				}
+				case '*':
+					/* pre-defined strings.. */
+					/* \*X or \*(XX  \*[...] */
+					if (!get_arg(&i, 0)) goto _break;
+					break;
+
+				case '[': {
+					/* [name] - not yet supported. */
+					for (;;) {
+						c = buffer[i++];
+						if (c == 0) goto _break;
+						if (c == ']') break;
+					}
+					break;
+				}
+
+				case 'f': {
+					/* \fC?[BIRP] */
+					/* \fC?[321] */
+					/* \f(BI */
+					if (buffer[i] == 'C') ++i;
+					if (!get_arg(&i, 0)) goto _break;
+					switch(arg_buffer[0]) {
+						case 'R': out_buffer[j++] = FONT_R; break;
+						case 'B': out_buffer[j++] = FONT_B; break;
+						case 'I': out_buffer[j++] = FONT_I; break;
+						case 'P': out_buffer[j++] = FONT_P; break;
+					}
+
+					// todo...
+					break;
+				}
+				case 'F': case 'g': case 'k': case 'M': case 'm': 
+				case 'n': case 'V': case 'Y':
+					if (!get_arg(&i, 0)) goto _break;
+					break;
+
+				case 'A': case 'B': case 'b': case 'C': case 'D': 
+				case 'H': case 'h': case 'L': case 'l': case 'N': 
+				case 'o': case 'R': case 'S': case 's': case 'v': 
+				case 'w': case 'X': case 'x': case 'Z':
+					{
+						/* A'string', etc */
+						c = buffer[i++]; if (c == 0) goto _break;
+						for(;;) {
+							c = buffer[i++];
+							if (c == 0) goto _break;
+							if (c == '\'') break;
+						}
+						break;
+					}
+				default: out_buffer[j++] = c; break;
+			}
+	
+		}
+		out_buffer[j++] = 0;
+	}
+
+_break:
+	out_buffer[j++] = 0;
+	argv[argc] = NULL;
+}
+
 static void parse_text(void) {
 	unsigned i;
 	unsigned j;
 	for (i = 0, j = 0;;) {
 		unsigned char c = buffer[i++];
 		if (c == ZWSPACE) continue;
-		// todo...
-		out_buffer[j++] = c;
-		if (c == 0) break;
+		if (c != '\\') {
+			out_buffer[j++] = c;
+			if (c == 0) return;
+			continue;
+		}
+
+
+		c = buffer[i++];
+		switch(c) {
+			case 0: goto _break;
+
+			case '&': case '|': case '^': case '%':
+				//out_buffer[j++] = ZWSPACE; break;
+				break;
+				/* \% is a hyphenation point. */
+			case ' ': case '0':
+				out_buffer[j++] = NBSPACE; break; /* non-paddable */
+			case 'e': out_buffer[j++] = '\\'; break;
+			case '~': out_buffer[j++] = NBSPACE; break; /* paddable */
+			case '"': goto _break; break; /* comment */
+			case 't': out_buffer[j++] = '\t'; break;
+
+			case '{': case '}': case 'd': case 'u': case 'p':
+			case 'z':
+				break;
+
+			case '(': {
+				unsigned k = 0;
+				const char *cp;
+				if (!get_arg(&i, '(')) goto _break;
+				cp = special_char(arg_buffer);
+				while ((c = cp[k++])) out_buffer[j++] = c;
+				break;
+			}
+			case '*':
+				/* pre-defined strings.. */
+				/* \*X or \*(XX  \*[...] */
+				if (!get_arg(&i, 0)) goto _break;
+				break;
+
+			case '[': {
+				/* [name] - not yet supported. */
+				for (;;) {
+					c = buffer[i++];
+					if (c == 0) goto _break;
+					if (c == ']') break;
+				}
+				break;
+			}
+
+			case 'f': {
+				/* \fC?[BIRP] */
+				/* \fC?[321] */
+				/* \f(BI */
+				if (buffer[i] == 'C') ++i;
+				if (!get_arg(&i, 0)) goto _break;
+				switch(arg_buffer[0]) {
+					case 'R': out_buffer[j++] = FONT_R; break;
+					case 'B': out_buffer[j++] = FONT_B; break;
+					case 'I': out_buffer[j++] = FONT_I; break;
+					case 'P': out_buffer[j++] = FONT_P; break;
+				}
+				// todo...
+				break;
+			}
+			case 'F': case 'g': case 'k': case 'M': case 'm': 
+			case 'n': case 'V': case 'Y':
+				if (!get_arg(&i, 0)) goto _break;
+				break;
+
+			case 'A': case 'B': case 'b': case 'C': case 'D': 
+			case 'H': case 'h': case 'L': case 'l': case 'N': 
+			case 'o': case 'R': case 'S': case 's': case 'v': 
+			case 'w': case 'X': case 'x': case 'Z':
+				{
+					/* A'string', etc */
+					c = buffer[i++]; if (c == 0) goto _break;
+					for(;;) {
+						c = buffer[i++];
+						if (c == 0) goto _break;
+						if (c == '\'') break;
+					}
+					break;
+				}
+			default: out_buffer[j++] = c; break;
+
+		} /* case */
 
 	}
+_break:
+	out_buffer[j++] = 0;
 }
