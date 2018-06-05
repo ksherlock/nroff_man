@@ -79,9 +79,10 @@ const char *read_line(void) {
 	if (eof) { type = tkEOF; return NULL; }
 
 	for(;;) {
-		type = tkTEXT;
 		unsigned escape = 0;
 		unsigned offset = 0;
+
+		type = tkTEXT;
 		argc = 0;
 		argv[0] = NULL;
 

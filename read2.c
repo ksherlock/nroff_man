@@ -24,8 +24,9 @@ static char *fonts(unsigned f1, unsigned f2) {
 
 static char *font(unsigned f) {
 	int i,j,k;
-	buffer[0] = f;
 	unsigned char c;
+
+	buffer[0] = f;
 
 	type = tkTEXT;
 	for(i = 0, j = 1; i <argc; ++i) {

@@ -42,7 +42,7 @@ static int tputs_helper(int c) {
 	return 1;
 }
 
-void man_init() {
+void man_init(void) {
 	static char buffer[1024];
 	static char buffer2[1024];
 	char *term;
@@ -196,7 +196,7 @@ static unsigned xstrlen(const char *cp) {
 	}
 }
 
-static void pd() {
+static void pd(void) {
 	unsigned i;
 	for (i = 0; i < PD; ++i) {
 		fputc('\n', stdout);
@@ -204,7 +204,7 @@ static void pd() {
 	}
 }
 
-static void newline() {
+static void newline(void) {
 	fputc('\n', stdout);
 	++line;
 }
@@ -467,7 +467,7 @@ static void th(void) {
 	line += 3;
 }
 
-static void print_footer() {
+static void print_footer(void) {
 
 	unsigned i;
 	char c;
