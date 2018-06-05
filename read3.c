@@ -285,10 +285,13 @@ static void append(const char *cp) {
 	i = 0;
 	j = 0;
 
+	if (cp[0] == ' ') flush(0);
+
 	k = buffer_offset;
 
 	for(;;) {
 		while (isspace(cp[i])) ++i;
+		if (cp[i] == 0) { buffer_offset = k; return; }
 		start = i;
 		xlen = 0;
 		for(;;++i) {
