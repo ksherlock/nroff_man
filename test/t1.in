@@ -1,0 +1,8 @@
+.\" 
+.\" this should be on two lines, not three.
+.\" 
+.IP "\fB-a\fR \fIatype\fR"
+Set the auxilary file type of the indicated files to the
+.IR atype
+specified.  The auxilary type may only be specified as a 
+number.

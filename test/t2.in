@@ -1,0 +1,14 @@
+.\"
+.\" test leading spacing.
+.\"
+
+.SH joined
+a man a plan a canal, panama.
+a man a plan a canal, panama.
+.SH nbsp + joined
+a man a plan a canal, panama.
+\&  a man a plan a canal, panama.
+.SH nbsp + indent
+a man a plan a canal, panama.
+ a man a plan a canal, panama.
+  a man a plan a canal, panama.
