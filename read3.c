@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <err.h>
 #include <stdlib.h>
+#include <string.h>
 #include <termcap.h>
 #include "man.h"
 
@@ -339,6 +340,152 @@ static void append(const char *cp) {
 	}
 }
 
+static char header[80];
+static char footer[80];
+static char *th_source = NULL;
+
+static void at(void) {
+	char *cp = NULL;
+	if (argc > 0) {
+		char *arg = argv[0];
+		switch(arg[0]) {
+			/* case '3': break; */
+			case '4': cp = "System III"; break;
+			case '5': cp = argc > 1 ? "System V Release 2" : "System V Release";
+				break;
+		}
+	}
+	if (!cp) cp = "7th Edition";
+	if (th_source) free(th_source);
+	th_source = strdup(cp);
+}
+
+static void uc(void) {
+	char *cp = NULL;
+	if (argc > 0) {
+		char *arg = argv[0];
+		switch(arg[0]) {
+			/* case '3': break; */
+			case '4': cp = "4th Berkeley Distribution"; break;
+			case '5': cp = "4.2 Berkeley Distribution"; break;
+			case '6': cp = "4.3 Berkeley Distribution"; break;
+			case '7': cp = "4.4 Berkeley Distribution"; break;
+		}
+	}
+	if (!cp) cp = "3rd Berkeley Distribution";
+	if (th_source) free(th_source);
+	th_source = strdup(cp);	
+}
+
+static void th(void) {
+	/* .TH title section date [source [volume]] */
+
+	/* header */
+	/* #{title}(#{section}) - #{volume} - #{title}(#{section}) */
+	/* footer */
+	/* #{source} - #{date} - #{title}(#{section}) */
+	/* GNO man uses Page # right footer */
+
+	char *title = NULL;
+	char *section = NULL;
+	char *date = NULL;
+	char *source = NULL;
+	char *volume = NULL;
+
+	unsigned i, j, l;
+	char c;
+
+
+	if (argc >= 1) title = argv[0];
+	if (argc >= 2) section = argv[1];
+	if (argc >= 3) date = argv[2];
+	if (argc >= 4) source = argv[3];
+	if (argc >= 5) volume = argv[4];
+
+	header[0] = 0;
+	footer[0] = 0;
+
+	if (source) {
+		if (th_source) free(th_source);
+		th_source = strdup(source);
+	}
+
+
+	#define _(x) if (!section[1]) volume = x; break
+	if (!volume && section) {
+		switch(section[0]) {
+			case '1': _("General Commands Manual");
+			case '2': _("System Calls Manual");
+			case '3': _("Library Functions Manual");
+			case '4': _("Device Drivers Manual");
+			case '5': _("File Formats Manual");
+			case '6': _("Games Manual");
+			case '7': _("Miscellaneous Information Manual");
+			case '8': _("System Manager\'s Manual");
+			case '9': _("Kernel Developer\'s Manual");
+			default:
+				break;
+		}
+	}
+	#undef x
+
+	if (!title) title = "";
+	if (!section) section = "";
+	if (!date) date = "";
+	if (!volume) volume = "";
+
+	memset(header, ' ', 78);	
+	memset(footer, ' ', 78);
+	header[78] = 0;	
+	footer[78] = 0;	
+
+	// todo - truncate if strlen(title) * 2 + strlen(section) * 2 + 4 + strlen()
+
+	j = 0;
+	for(i = 0; ; ++i) { char c = title[i]; if (!c) break; header[j++] = c; }
+	header[j++] = '(';
+	for(i = 0; ; ++i) { char c = section[i]; if (!c) break; header[j++] = c; }
+	header[j++] = ')';
+	// mirror at the end of the string.
+	for (i = 0; i < j; ++i) {
+		char c = header[i];
+		header[78 - j + i] = c;
+		footer[78 - j + i] = c;
+	}
+
+	l = strlen(volume);
+	j = (78 - l) >> 1;
+	for (i = 0; ; ++i) { char c = volume[i]; if (!c) break; header[j++] = c; }
+
+	l = strlen(date);
+	j = (78 - l) >> 1;
+	for (i = 0; ; ++i) { char c = date[i]; if (!c) break; footer[j++] = c; }
+
+
+	fputs(header, stdout);
+	fputs("\n\n\n", stdout);
+	line += 3;
+}
+
+static void print_footer() {
+
+	unsigned i;
+	char c;
+
+	if (!header[0]) return;
+
+	if (th_source) {
+		i = 0;
+		while ((c = th_source[i])) footer[i++] = c;
+	}
+
+	fputs("\n\n\n", stdout); line += 3;
+	fputs(footer, stdout);
+	fputc('\n', stdout); ++line;
+
+	if (th_source) free(th_source);
+	th_source = NULL;
+}
 
 void man(FILE *fp) {
 
@@ -361,6 +508,11 @@ void man(FILE *fp) {
 	buffer_offset = 0;
 	buffer_words = 0;
 	buffer[0] = 0;
+
+	th_source = NULL;
+	header[0] = 0;
+	footer[0] = 0;
+
 	set_indent(IN_DEFAULT, -1);
 
 	read_init(fp);
@@ -375,8 +527,10 @@ void man(FILE *fp) {
 		if (type != tkTEXT) trap = 0;
 
 		switch(type) {
-			case tkTH:
-				break;
+			case tkAT: at(); break;
+			case tkUC: uc(); break;
+			case tkTH: th(); break;
+
 			case tkLP:
 			case tkPP:
 			case tkP:
@@ -526,6 +680,7 @@ void man(FILE *fp) {
 	}
 	flush(0);
 	// print footer...
+	print_footer();
 
 	read_init(NULL);
 }

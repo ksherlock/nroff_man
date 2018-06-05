@@ -52,8 +52,6 @@ const char *read_text(void) {
 			case tkUE:
 			case tkMT:
 			case tkME:
-			case tkAT:
-			case tkUC:
 				continue;
 
 			/* next-line fonts */
