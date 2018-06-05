@@ -7,17 +7,29 @@
 #include <termcap.h>
 #include "man.h"
 
-static int width;
-static int in;
-static int ti;
-static int nf;
+/* inter-paragraph spacing */
 static int PD;
-static int TP;
+/* paragraph indent for HP, IP, TP. reset by SH/SS */
 static int IP;
+/*static int RS;*/
+/* left margin. initially 0, set to 7 by SH/SS. updated by RE/RS */
+static int LM;
+/* right margin. always 78 */
+static unsigned RM;
+
+/* width. RM - (LM + ti/in) */
+static int width;
+/* current indent level */
+static int in;
+/* temporary indent level */
+static int ti;
+/* non-format flag */
+static int nf;
+
+
 static int line;
 static int font;
 static int prev_font;
-static unsigned rm;
 
 static char buffer[512];
 static unsigned buffer_width;
@@ -25,9 +37,13 @@ static unsigned buffer_words;
 static unsigned buffer_offset;
 static unsigned buffer_flip_flop;
 
+static int rs_count;
+static int rs_stack[8];
 
-#define IN_DEFAULT 7
-#define SS_DEFAULT 3
+
+#define PP_INDENT 7
+#define SS_INDENT 3
+#define SH_INDENT 0
 
 static char *bold_begin = NULL;
 static char *bold_end = NULL;
@@ -96,7 +112,7 @@ static void set_font(unsigned new_font) {
 
 	prev_font = font;
 	if (font == new_font) return;
-	// disable current font.
+	/* disable current font. */
 	switch(font) {
 		case FONT_B:
 			if (bold_end) fputs(bold_end, stdout);
@@ -143,7 +159,7 @@ static void set_indent(int new_in, int new_ti) {
 	in = new_in;
 	ti = new_ti;
 	lm = new_ti >= 0 ? new_ti : new_in;
-	width = rm - lm;
+	width = RM - lm;
 }
 
 static unsigned print(const char *cp, int fi) {
@@ -216,7 +232,7 @@ static void flush(unsigned justify) {
 
 	if (!buffer_width) return;
 
-	// removing trailing whitespace.
+	/* removing trailing whitespace. */
 	i = buffer_offset - 1;
 	while(isspace(buffer[i]) || buffer[i] == NBSPACE) { --i; --buffer_width; }
 	buffer[++i] = 0;
@@ -228,7 +244,7 @@ static void flush(unsigned justify) {
 	buffer_flip_flop = !buffer_flip_flop;
 	padding += holes;
 
-	// indent.
+	/* indent. */
 	indent(-1);
 	set_indent(in, -1);
 
@@ -343,39 +359,69 @@ static void append(const char *cp) {
 	}
 }
 
+static void set_tag(const char *cp) {
+	/* set the tag for IP/TP */
+	int xline = line;
+
+	/* assumes buffer has been flushed */
+	set_indent(PP_INDENT + IP, PP_INDENT);
+
+	append(cp);
+	if (line > xline || buffer_width > IP) {
+		flush(0);
+	} else {
+		unsigned i;
+		for (i = 0; i < buffer_offset; ++i) {
+			char c = buffer[i];
+			if (c == ' ' || c == '\t') buffer[i] = NBSPACE;
+		}
+		while (buffer_width < IP) {
+			buffer[buffer_offset++] = NBSPACE;
+			buffer_width++;
+		}
+		buffer[buffer_offset] = 0;
+		buffer_words = 0;
+	}
+
+}
+
 static char header[80];
 static char footer[80];
 static char *th_source = NULL;
 
+/* read an int, which is expected to be in the range 0-9. */
+static int get_int(const char *arg) {
+	if (!arg || !arg[0]) return -1;
+	if (isdigit(arg[0]) && !arg[1]) return arg[0] - '0';
+	return -1;
+}
+
 static void at(void) {
 	char *cp = NULL;
-	if (argc > 0) {
-		char *arg = argv[0];
-		switch(arg[0]) {
-			/* case '3': break; */
-			case '4': cp = "System III"; break;
-			case '5': cp = argc > 1 ? "System V Release 2" : "System V Release";
-				break;
-		}
+
+	switch(get_int(argv[0])) {
+		default:
+		case 3: cp = "7th Edition"; break;
+		case 4: cp = "System III"; break;
+		case 5:
+			if (argc == 2 && get_int(argv[1]) == 2)
+				cp = "System V Release 2";
+			else cp = "System V Release";
 	}
-	if (!cp) cp = "7th Edition";
 	if (th_source) free(th_source);
 	th_source = strdup(cp);
 }
 
 static void uc(void) {
 	char *cp = NULL;
-	if (argc > 0) {
-		char *arg = argv[0];
-		switch(arg[0]) {
-			/* case '3': break; */
-			case '4': cp = "4th Berkeley Distribution"; break;
-			case '5': cp = "4.2 Berkeley Distribution"; break;
-			case '6': cp = "4.3 Berkeley Distribution"; break;
-			case '7': cp = "4.4 Berkeley Distribution"; break;
-		}
+	switch (get_int(argv[0])) {
+		default:
+		case 3: cp = "3rd Berkeley Distribution"; break;
+		case 4: cp = "4th Berkeley Distribution"; break;
+		case 5: cp = "4.2 Berkeley Distribution"; break;
+		case 6: cp = "4.3 Berkeley Distribution"; break;
+		case 7: cp = "4.4 Berkeley Distribution"; break;
 	}
-	if (!cp) cp = "3rd Berkeley Distribution";
 	if (th_source) free(th_source);
 	th_source = strdup(cp);	
 }
@@ -389,11 +435,11 @@ static void th(void) {
 	/* #{source} - #{date} - #{title}(#{section}) */
 	/* GNO man uses Page # right footer */
 
-	char *title = NULL;
-	char *section = NULL;
-	char *date = NULL;
-	char *source = NULL;
-	char *volume = NULL;
+	const char *title = NULL;
+	const char *section = NULL;
+	const char *date = NULL;
+	const char *source = NULL;
+	const char *volume = NULL;
 
 	unsigned i, j, l;
 	char c;
@@ -497,14 +543,14 @@ void man(FILE *fp) {
 	in = 0;
 	ti = -1;
 	PD = 1;
-	IP = 7;
-	TP = 7;
+	IP = PP_INDENT;
 	line = 1;
 	nf = 0;
 
 	font = FONT_R;
 	prev_font = FONT_R;
-	rm = 78;
+	RM = 78;
+	LM = PP_INDENT;
 
 	buffer_flip_flop = 0;
 	buffer_width = 0;
@@ -516,7 +562,11 @@ void man(FILE *fp) {
 	header[0] = 0;
 	footer[0] = 0;
 
-	set_indent(IN_DEFAULT, -1);
+
+	rs_count = 0;
+
+	/* indent isn't set until .SH, .SS, .PP, etc */
+	set_indent(0, -1);
 
 	read_init(fp);
 
@@ -527,7 +577,6 @@ void man(FILE *fp) {
 		if (type == tkEOF) {
 			break;
 		}
-		if (type != tkTEXT) trap = 0;
 
 		switch(type) {
 			case tkAT: at(); break;
@@ -537,14 +586,18 @@ void man(FILE *fp) {
 			case tkLP:
 			case tkPP:
 			case tkP:
+				trap = 0;
 				flush(0);
 				reset_font();
-				set_indent(IN_DEFAULT, -1);
+				set_indent(LM, -1);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				break;
+
+
 			case tkIP:
 				/* indented paragraph */
 				/* IP [tag [width]] */
+				trap = 0;
 				flush(0);
 				reset_font();
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
@@ -553,31 +606,21 @@ void man(FILE *fp) {
 				}
 
 				if (argc >= 1) {
-					set_indent(IN_DEFAULT + IP, IN_DEFAULT);
-					append(argv[0]);
-					/* same logic as TP trap */
-					if (buffer_width >= IP) flush(0);
-					else {
-						unsigned i;
-						for (i = 0; i < buffer_offset; ++i)
-							if (isspace(buffer[i])) buffer[i] = NBSPACE;
-						for(i = buffer_width; i < IP; ++i) {
-							buffer[buffer_offset++] = NBSPACE;
-							buffer_width++;
-						}
-						buffer[buffer_offset] = 0;
-						buffer_words--;
-					}
+					IP = PP_INDENT;
+					set_indent(LM + IP, LM);
+					set_tag(argv[0]);
 				} else {
-					set_indent(IN_DEFAULT + IP, -1);
+					set_indent(LM + IP, -1);
 				}
 				break;
 
 			case tkHP:
 				/* hanging paragraph */
+				trap = 0;
 				flush(0);
 				reset_font();
-				set_indent(IN_DEFAULT + 4, IN_DEFAULT);
+				IP = PP_INDENT;
+				set_indent(LM + IP, LM);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				break;
 
@@ -585,17 +628,19 @@ void man(FILE *fp) {
 				/* tagged paragraph */
 				flush(0);
 				reset_font();
-				TP = 4;
-				set_indent(IN_DEFAULT + TP, IN_DEFAULT);
+				IP = PP_INDENT;
+				set_indent(LM + IP, LM);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				trap = type;
 				break;
 
 			case tkNF:
+				trap = 0;
 				flush(0);
 				nf = 1;
 				break;
 			case tkFI:
+				trap = 0;
 				nf = 0;
 				break;
 
@@ -604,34 +649,59 @@ void man(FILE *fp) {
 			case tkPD:
 				break;
 			case tkRS:
+				/* RS [width] */
+				flush(0);
+				rs_stack[rs_count++] = LM;
+				LM += PP_INDENT;
+				set_indent(LM, ti);
+				break;
 			case tkRE:
+				/* RE [level] */
+				/* RE - pop last RS */
+				/* RE 1 - pop all RS */
+				/* RE 2 - pop all but 1 RS */
+				/* etc. */
+				flush(0);
+				if (argc) {
+					int n = get_int(argv[0]);
+					if (n < 1) n = 1;
+					--n;
+					if (n < rs_count) {
+						LM = rs_stack[n];
+						rs_count = n;
+					} else {
+						warnx("Invalid RS count (%d / %d)", n + 1, rs_count);
+					}
+
+				} else {
+					if (rs_count)
+						LM = rs_stack[--rs_count];
+					else LM = 0;
+				}
+
+				set_indent(LM, ti);
 				break;
 
 			case tkSH:
 			case tkSS:
+				/* next-line scoped */
 				trap = 0;
-				/* next-line */
 				flush(0);
 				reset_font();
-				set_indent(IN_DEFAULT, -1);
+				LM = PP_INDENT;
+				IP = PP_INDENT;
+				set_indent(PP_INDENT, type == tkSS ? SS_INDENT : SH_INDENT);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				if (argc) {
 					int i;
-					if (type == tkSS) indent(SS_DEFAULT);
-					//set_font(FONT_B);
-					for (i = 0; i < argc; ++i) {
-						if (i) fputc(' ', stdout);
-						print(argv[i], 1);
-					}
-					//reset_font();
-					fputc('\n', stdout); ++line;
+					for (i = 0; i < argc; ++i) append(argv[i]);
+					flush(0);
 				} else {
 					trap = type;
 				}
 				break;
 
-			case tkTEXT: {
-				unsigned xline = line;
+			case tkTEXT:
 				if (nf) {
 					indent(-1);
 					set_indent(in, -1);
@@ -639,47 +709,23 @@ void man(FILE *fp) {
 					fputc('\n', stdout); ++line;
 					break;
 				}
-				if (!cp[0]) continue;
-				switch(trap) {
-					case tkSS:
-						set_indent(IN_DEFAULT, SS_DEFAULT);
-						//set_font(FONT_B);
-						break;
-
-					case tkSH:
-						set_indent(IN_DEFAULT, 0);
-						//set_font(FONT_B);
-						break;
+				if (trap == tkTP) {
+					set_tag(cp);
+					cp = NULL;
 				}
+				if (!cp || !cp[0]) continue;
 				append(cp);
 				switch(trap) {
 					case tkSS:
 					case tkSH:
 						flush(0);
-						//reset_font();
-						set_indent(IN_DEFAULT, -1);
+						/* reset_font(); */
+						/* set_indent(PP_INDENT, -1); */
 						break;
-					case tkTP:
-						if (buffer_width >= TP) flush(0);
-						else {
-							unsigned i;
-							for (i = 0; i < buffer_offset; ++i)
-								if (isspace(buffer[i])) buffer[i] = NBSPACE;
-							for (i = buffer_width; i < TP; ++i) {
-								buffer[buffer_offset++] = NBSPACE;
-								buffer_width++;
-							}
-							buffer_words--;
-							buffer[buffer_offset] = 0;			
-						}
-
 				}
 				trap = 0;
 				break;
-			}
 		}
-
-
 	}
 	flush(0);
 	// print footer...
