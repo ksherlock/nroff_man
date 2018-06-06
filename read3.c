@@ -727,7 +727,7 @@ void man(FILE *fp) {
 			case tksp: {
 				flush(0);
 				int n = get_unit(argv[0], 1);
-				while (n-- >= 0 ) {
+				while (--n >= 0 ) {
 					fputc('\n', stdout); ++line;
 				}
 				break;
