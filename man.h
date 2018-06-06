@@ -52,11 +52,13 @@ enum {
 	tkUE,
 	tkUR,
 	/**/
+	tkbr,
 	tkfi,
 	tkin,
 	tknf,
+	tkso,
 	tksp,
-	tkbr
+	tkxx /* skipped */
 };
 
 

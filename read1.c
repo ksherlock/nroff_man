@@ -27,7 +27,7 @@ unsigned get_arg(unsigned *i_ptr, unsigned type) {
 
 	if (type == 0) c = type = buffer[i++];
 	arg_buffer[0] = 0;
-	if (type == 0) return 0; // error.
+	if (type == 0) return 0; /* error. */
 	if (type == '[') {
 		unsigned j = 0;
 		for (;;) {
@@ -161,11 +161,18 @@ break;
 
 
 			switch(c) {
+			/* tkxx skipped tokens:
+				.ad [blrc] - text justification
+				.if ...
+				.nh - no hyphenation
+			*/
+			_1 ('a', 'd', tkxx);
 			_1 ('b', 'r', tkbr);
 			_1 ('f', 'i', tkfi);
-			_1 ('i', 'n', tkin);
-			_1 ('n', 'f', tknf);
-			_1 ('s', 'p', tksp);
+			_2 ('i', 'n', tkin, 'f', tkxx);
+			_2 ('n', 'f', tknf, 'h', tkxx);
+			_2 ('s', 'o', tkso, 'p', tksp);
+			/* */
 			_1 ('A', 'T', tkAT);
 			_2x('B', 'I', tkBI, 'R', tkBR, tkB);
 			_1 ('D', 'T', tkDT);
@@ -190,6 +197,7 @@ break;
 				warnx("invalid command: %s", buffer);
 				continue;
 			}
+			if (type == tkxx) continue;
 			parse_args(i);
 			return "";
 		}
@@ -214,9 +222,11 @@ break;
  * replace unsupported escapes w/ 0-width space?
  */
 static unsigned analyze(unsigned *i_ptr) {
-	// & 0x01 -> escape sequence detected
-	// & 0x02 -> continuation detected.
-	// & 0x04 -> invalid escape sequence detected (and removed)
+	/*
+		& 0x01 -> escape sequence detected
+		& 0x02 -> continuation detected.
+		& 0x04 -> invalid escape sequence detected (and removed)
+	*/
 	unsigned i = *i_ptr;
 	unsigned j;
 	unsigned escape = 0;
@@ -347,7 +357,8 @@ void parse_args(unsigned i) {
 
 			c = buffer[i++];
 			if (c == 0) goto _break;
-			if (c == ZWSPACE) continue; // don't strip -- needed for .\~ etc,
+			if (c == ZWSPACE) continue;
+			/* don't strip -- needed for .\~ etc, */
 			if (quote && c == '"') {
 				if (buffer[i] == '"') {
 					out_buffer[j++] = '"';

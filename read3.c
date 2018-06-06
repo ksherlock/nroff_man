@@ -555,14 +555,15 @@ static void th(void) {
 	header[78] = 0;	
 	footer[78] = 0;	
 
-	// todo - truncate if strlen(title) * 2 + strlen(section) * 2 + 4 + strlen()
-
+	/*
+	 todo - truncate if strlen(title) * 2 + strlen(section) * 2 + 4 + strlen()
+	*/
 	j = 0;
 	for(i = 0; ; ++i) { char c = title[i]; if (!c) break; header[j++] = c; }
 	header[j++] = '(';
 	for(i = 0; ; ++i) { char c = section[i]; if (!c) break; header[j++] = c; }
 	header[j++] = ')';
-	// mirror at the end of the string.
+	/* mirror at the end of the string. */
 	for (i = 0; i < j; ++i) {
 		char c = header[i];
 		header[78 - j + i] = c;
@@ -720,6 +721,18 @@ void man(FILE *fp) {
 			case tkin:
 				break;
 
+			case tkbr:
+				flush(0);
+				break;
+			case tksp: {
+				flush(0);
+				int n = get_unit(argv[0], 1);
+				while (n-- >= 0 ) {
+					fputc('\n', stdout); ++line;
+				}
+				break;
+			}
+
 			case tkPD:
 				PD = get_unit(argv[0], 1);
 				break;
@@ -803,7 +816,6 @@ void man(FILE *fp) {
 		}
 	}
 	flush(0);
-	// print footer...
 	print_footer();
 
 	read_init(NULL);

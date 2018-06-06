@@ -1,7 +1,7 @@
 case 0: goto _break;
 
 case '&': case '|': case '^': case '%':
-	//out_buffer[j++] = ZWSPACE; break;
+	/* out_buffer[j++] = ZWSPACE; break; */
 	break;
 
 	/* \% is a hyphenation point. */
