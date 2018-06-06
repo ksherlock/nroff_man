@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termcap.h>
+#include <errno.h>
 #include "man.h"
 
 /* inter-paragraph spacing */
@@ -145,11 +146,17 @@ static void reset_font(void) {
 }
 
 
-static int indent(int amt) {
-	int i;
-	if (amt == -1) {
-		amt = ti >= 0 ? ti : in;
+static int indent(void) {
+	int i, amt;
+
+	if (ti >= 0) {
+		amt = ti;
+		ti = -1;
+		width = RM - in;
+	} else {
+		amt = in;
 	}
+
 	for (i = 0; i < amt; ++i) fputc(' ', stdout);
 	return amt;
 }
@@ -245,8 +252,7 @@ static void flush(unsigned justify) {
 	padding += holes;
 
 	/* indent. */
-	indent(-1);
-	set_indent(in, -1);
+	indent();
 
 	for (i = 0; ; ++i) {
 		unsigned char c = buffer[i];
@@ -256,7 +262,7 @@ static void flush(unsigned justify) {
 				if (justify) {
 					int j;
 					int fudge;
-					// taken from nroff.
+					/* taken from nroff. */
 					if (buffer_flip_flop) 
 						fudge = padding / holes;
 					else
@@ -264,7 +270,6 @@ static void flush(unsigned justify) {
 
 					padding -= fudge;
 					holes -= 1;
-					//fudge++;
 					for (j = 0; j < fudge; ++j) fputc(' ', stdout);
 
 
@@ -396,6 +401,56 @@ static int get_int(const char *arg) {
 	return -1;
 }
 
+static int get_unit(const char *arg, int dv) {
+	double d;
+	char sign = 0;
+	char c;
+	char *cp = NULL;
+	
+	if (!arg || !arg[0]) return dv;
+	c = arg[0];
+	if (c == '+' || c == '-') {
+		sign = c;
+		++arg;
+	}
+	c = arg[0];
+	if (!isdigit(c) && c != '.') return dv;
+
+	errno = 0;
+	d = strtod(arg, &cp);
+	if (errno) return dv;
+
+	c = *cp;
+	switch (c) {
+		case 'c': /* centimeter */
+			d *= 94.5 / 24.0;
+			break;
+		case 'i': /* inch */
+			d *= 10.0; /* 240.0 / 24.0; */
+			break;
+		case 'P': /* pica - 1/6 inch */
+			d *= 10.0 / 6.0;
+			break;
+		case 'p': /* point - 1/72 inch */
+			d *= 10.0 / 72.0;
+			break;
+		case 'f':
+			d *= 65536.0 / 24.0;
+			break;
+		case 'M': /* mini em - 1/100 em */
+			d  /= 100.0;
+			break;
+
+		case 'm':
+		case 'n':
+		case 'u':
+		case 'v':
+		default:
+			break;
+	}
+	return (int)d;
+}
+
 static void at(void) {
 	char *cp = NULL;
 
@@ -460,20 +515,19 @@ static void th(void) {
 	}
 
 
-	#define _(x) if (!section[1]) volume = x; break
-	if (!volume && section) {
-		switch(section[0]) {
-			case '1': _("General Commands Manual");
-			case '2': _("System Calls Manual");
-			case '3': _("Library Functions Manual");
-			case '4': _("Device Drivers Manual");
-			case '5': _("File Formats Manual");
-			case '6': _("Games Manual");
-			case '7': _("Miscellaneous Information Manual");
-			case '8': _("System Manager\'s Manual");
-			case '9': _("Kernel Developer\'s Manual");
-			default:
-				break;
+	#define _(x) volume = x; break
+	if (!volume) {
+		switch(get_int(section)) {
+			case 1: _("General Commands Manual");
+			case 2: _("System Calls Manual");
+			case 3: _("Library Functions Manual");
+			case 4: _("Device Drivers Manual");
+			case 5: _("File Formats Manual");
+			case 6: _("Games Manual");
+			case 7: _("Miscellaneous Information Manual");
+			case 8: _("System Manager\'s Manual");
+			case 9: _("Kernel Developer\'s Manual");
+			default: _("");
 		}
 	}
 	#undef x
@@ -603,10 +657,10 @@ void man(FILE *fp) {
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				if (argc >= 2) {
 					/* set IP width... */
+					IP = get_unit(argv[1], PP_INDENT);
 				}
 
 				if (argc >= 1) {
-					IP = PP_INDENT;
 					set_indent(LM + IP, LM);
 					set_tag(argv[0]);
 				} else {
@@ -619,7 +673,10 @@ void man(FILE *fp) {
 				trap = 0;
 				flush(0);
 				reset_font();
-				IP = PP_INDENT;
+				if (argc >= 1) {
+					/* set IP width... */
+					IP = get_unit(argv[0], PP_INDENT);
+				}
 				set_indent(LM + IP, LM);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				break;
@@ -628,7 +685,10 @@ void man(FILE *fp) {
 				/* tagged paragraph */
 				flush(0);
 				reset_font();
-				IP = PP_INDENT;
+				if (argc >= 1) {
+					/* set IP width... */
+					IP = get_unit(argv[0], PP_INDENT);
+				}
 				set_indent(LM + IP, LM);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				trap = type;
@@ -647,11 +707,13 @@ void man(FILE *fp) {
 			case tkIN:
 				break;
 			case tkPD:
+				PD = get_unit(argv[0], 1);
 				break;
 			case tkRS:
 				/* RS [width] */
 				flush(0);
 				rs_stack[rs_count++] = LM;
+				if (argc >= 1) IP = get_unit(argv[0], PP_INDENT);
 				LM += PP_INDENT;
 				set_indent(LM, ti);
 				break;
@@ -703,8 +765,7 @@ void man(FILE *fp) {
 
 			case tkTEXT:
 				if (nf) {
-					indent(-1);
-					set_indent(in, -1);
+					indent();
 					print(cp, 0);
 					fputc('\n', stdout); ++line;
 					break;
