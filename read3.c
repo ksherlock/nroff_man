@@ -145,8 +145,10 @@ static void reset_font(void) {
 	font = prev_font = FONT_R;
 }
 
-
-static int indent(void) {
+/*
+ * indent and remove temporary indent, if appropriate.
+ */ 
+static void indent(void) {
 	int i, amt;
 
 	if (ti >= 0) {
@@ -157,8 +159,19 @@ static int indent(void) {
 		amt = in;
 	}
 
+	if (!amt) return;
+
+	#define _(x) if (x) fputs(x, stdout); break;
+	switch(font) {
+		case FONT_B: _(bold_end);
+		case FONT_I: _(italic_end);
+	}
 	for (i = 0; i < amt; ++i) fputc(' ', stdout);
-	return amt;
+	switch(font) {
+		case FONT_B: _(bold_begin);
+		case FONT_I: _(italic_begin);
+	}
+	#undef _
 }
 
 static void set_indent(int new_in, int new_ti) {
@@ -694,18 +707,19 @@ void man(FILE *fp) {
 				trap = type;
 				break;
 
-			case tkNF:
+			case tknf:
 				trap = 0;
 				flush(0);
 				nf = 1;
 				break;
-			case tkFI:
+			case tkfi:
 				trap = 0;
 				nf = 0;
 				break;
 
-			case tkIN:
+			case tkin:
 				break;
+
 			case tkPD:
 				PD = get_unit(argv[0], 1);
 				break;

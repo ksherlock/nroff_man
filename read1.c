@@ -161,9 +161,11 @@ break;
 
 
 			switch(c) {
-			_1 ('f', 'i', tkFI);
-			_1 ('i', 'n', tkIN);
-			_1 ('n', 'f', tkNF);
+			_1 ('b', 'r', tkbr);
+			_1 ('f', 'i', tkfi);
+			_1 ('i', 'n', tkin);
+			_1 ('n', 'f', tknf);
+			_1 ('s', 'p', tksp);
 			_1 ('A', 'T', tkAT);
 			_2x('B', 'I', tkBI, 'R', tkBR, tkB);
 			_1 ('D', 'T', tkDT);

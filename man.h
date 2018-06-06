@@ -52,9 +52,11 @@ enum {
 	tkUE,
 	tkUR,
 	/**/
-	tkFI,
-	tkIN,
-	tkNF,
+	tkfi,
+	tkin,
+	tknf,
+	tksp,
+	tkbr
 };
 
 
