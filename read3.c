@@ -6,6 +6,7 @@
 #include <string.h>
 #include <termcap.h>
 #include <errno.h>
+#include <assert.h>
 #include "man.h"
 
 /* inter-paragraph spacing */
@@ -209,53 +210,30 @@ static unsigned print(const char *cp, int fi) {
 	}
 }
 
-static unsigned xstrlen(const char *cp) {
-
-	unsigned i;
-	unsigned char prev = 0;
-	unsigned length = 0;
-	for (i = 0; ;++i) {
-		unsigned char c = cp[i];
-		if (c == 0) return length;
-		switch(c) {
-			case FONT_R: case FONT_B: case FONT_I: case FONT_P:
-			case ZWSPACE:
-				break;
-			case NBSPACE: length++; break;
-			case ' ': case '\t':
-				c = ' ';
-				if (prev != ' ') length++;
-				break;
-			default: length++;
-		}
-		prev = c;
-	}
-}
-
-static void pd(void) {
-	unsigned i;
-	for (i = 0; i < PD; ++i) {
-		fputc('\n', stdout);
-		++line;
-	}
-}
-
-static void newline(void) {
-	fputc('\n', stdout);
-	++line;
-}
 
 static void flush(unsigned justify) {
 	unsigned i;
 	int padding;
 	int holes;
 
-	if (!buffer_width) return;
+	if (!buffer_offset) {
+		/* what if it, eg, enables bold? */
+		/*
+		assert(buffer_offset == 0);
+		assert(buffer[0] == 0);
+		*/
+		return;
+	}
 
 	/* removing trailing whitespace. */
 	i = buffer_offset - 1;
-	while(isspace(buffer[i]) || buffer[i] == NBSPACE) { --i; --buffer_width; }
-	buffer[++i] = 0;
+	while (i) {
+		char c;
+		c = buffer[i-1];
+		if (c == ' ' || c == '\t' || c == NBSPACE){ --i; --buffer_width; }
+		else break;
+	}
+	buffer[i] = 0;
 
 	padding = width - buffer_width;
 	holes = buffer_words - 1;
@@ -307,6 +285,23 @@ static void flush(unsigned justify) {
 
 }
 
+static unsigned is_sentence(const char *cp, unsigned offset) {
+	char c;
+	if (offset == 0) return 0;
+	--offset;
+	while (offset) {
+		c = cp[offset];
+		if (c == ')' || c == ']' || c == '\'' || c == '"') {
+			--offset;
+			continue;
+		}
+		break;
+	}
+	c = cp[offset];
+	if (c == '.' || c == '?' || c == '!') return 1;
+	return 0;
+}
+
 /* append buffer */
 static void append(const char *cp) {
 
@@ -338,6 +333,7 @@ static void append(const char *cp) {
 				/* flush() depends on buffer_offset, etc */
 				if (buffer_width + xlen > width) {
 					buffer_offset = k;
+					buffer[k] = 0;
 					flush(1);
 					k = 0;
 				}
@@ -351,8 +347,7 @@ static void append(const char *cp) {
 
 				if (j > 1) {
 					/* if word ends w/ [.?!] should add extra space */
-					unsigned char c = cp[j-1];
-					if (c == '.' || c == '?' || c == '!') {
+					if (is_sentence(cp, j)) {
 						buffer[k++] = NBSPACE; /* stripped if end */
 						xlen++;
 					}
@@ -382,7 +377,7 @@ static void set_tag(const char *cp) {
 	int xline = line;
 
 	/* assumes buffer has been flushed */
-	set_indent(PP_INDENT + IP, PP_INDENT);
+	/* set_indent(LM + IP, LM); */
 
 	append(cp);
 	if (line > xline || buffer_width > IP) {
@@ -741,7 +736,7 @@ void man(FILE *fp) {
 				flush(0);
 				rs_stack[rs_count++] = LM;
 				if (argc >= 1) IP = get_unit(argv[0], PP_INDENT);
-				LM += PP_INDENT;
+				LM += IP;
 				set_indent(LM, ti);
 				break;
 			case tkRE:
@@ -798,6 +793,7 @@ void man(FILE *fp) {
 					break;
 				}
 				if (trap == tkTP) {
+					trap = 0;
 					set_tag(cp);
 					cp = NULL;
 				}
