@@ -291,7 +291,7 @@ static unsigned is_sentence(const char *cp, unsigned offset) {
 	--offset;
 	while (offset) {
 		c = cp[offset];
-		if (c == ')' || c == ']' || c == '\'' || c == '"') {
+		if (c == ')' || c == ']' || c == '\'' || c == '"' || c == '*') {
 			--offset;
 			continue;
 		}
@@ -345,7 +345,7 @@ static void append(const char *cp) {
 				for (j = start; j < end; ++j)
 					buffer[k++] = cp[j];
 
-				if (j > 1) {
+				if (c == 0 && j > 1) {
 					/* if word ends w/ [.?!] should add extra space */
 					if (is_sentence(cp, j)) {
 						buffer[k++] = NBSPACE; /* stripped if end */
