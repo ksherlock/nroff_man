@@ -603,6 +603,8 @@ void man(FILE *fp) {
 
 
 	unsigned trap = 0;
+	unsigned so_count = 0;
+
 	in = 0;
 	ti = -1;
 	PD = 1;
@@ -692,6 +694,7 @@ void man(FILE *fp) {
 
 			case tkTP:
 				/* tagged paragraph */
+				trap = 0;
 				flush(0);
 				reset_font();
 				if (argc >= 1) {
@@ -717,13 +720,29 @@ void man(FILE *fp) {
 				break;
 
 			case tkbr:
+				trap = 0;
 				flush(0);
 				break;
 			case tksp: {
+				trap = 0;
 				flush(0);
 				int n = get_unit(argv[0], 1);
 				while (--n >= 0 ) {
 					fputc('\n', stdout); ++line;
+				}
+				break;
+			}
+			case tkso: {
+				/* .so filename */
+				if (argc){
+					FILE *tmp;
+					if (so_count > 3) errx(1, "Too many .so requests.");
+					tmp = fopen(argv[0], "r");
+					if (!tmp) errx(1, ".so %s", argv[0]);
+					if (so_count) fclose(fp);
+					++so_count;
+					fp = tmp;
+					read_init(fp);
 				}
 				break;
 			}
@@ -813,6 +832,8 @@ void man(FILE *fp) {
 	}
 	flush(0);
 	print_footer();
+
+	if (so_count) fclose(fp);
 
 	read_init(NULL);
 }
