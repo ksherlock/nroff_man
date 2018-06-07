@@ -58,6 +58,7 @@ enum {
 	tknf,
 	tkso,
 	tksp,
+	tkcc,
 	tkxx /* skipped */
 };
 

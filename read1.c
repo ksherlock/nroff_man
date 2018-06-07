@@ -11,6 +11,7 @@ int type = tkTEXT;
 int argc = 0;
 const char *argv[32];
 static int eof = 0;
+static char cc = '.';
 
 static FILE *infile = NULL;
 
@@ -71,6 +72,7 @@ void read_init(FILE *fp) {
 	out_buffer[0] = 0;
 	argc = 0;
 	argv[0] = NULL;
+	cc = '.';
 }
 
 const char *read_line(void) {
@@ -101,7 +103,7 @@ const char *read_line(void) {
 			if (bits & 0x02) continue; /*  /n - join next line. */
 			break;
 		}
-		if (buffer[0] == '.') {
+		if (buffer[0] == cc) {
 			unsigned i = 1;
 			unsigned char c;
 			while (isspace(buffer[i])) ++i;
@@ -168,6 +170,7 @@ break;
 			*/
 			_1 ('a', 'd', tkxx);
 			_1 ('b', 'r', tkbr);
+			_1 ('c', 'c', tkcc);
 			_1 ('f', 'i', tkfi);
 			_2 ('i', 'n', tkin, 'f', tkxx);
 			_2 ('n', 'f', tknf, 'h', tkxx);
@@ -198,6 +201,12 @@ break;
 				continue;
 			}
 			if (type == tkxx) continue;
+			if (type == tkcc) {
+				/* quotes not supported. */
+				while (isspace(c = buffer[i])) ++i;
+				cc = c == 0 ? '.' : c;
+				continue;
+			}
 			parse_args(i);
 			return "";
 		}
