@@ -86,8 +86,9 @@ const char *read_text(void) {
 						FONT_B, argv[0], FONT_R
 					);
 				else
-					sprintf(buffer, "[%c%s%c %c%s%c]",
+					sprintf(buffer, "[%c%s%c%c%c%s%c]",
 						FONT_B, argv[0], FONT_R,
+						NBSPACE,
 						FONT_I, argv[1], FONT_R);
 				type = tkTEXT;
 				return buffer;

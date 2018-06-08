@@ -26,7 +26,6 @@ static int in;
 /* temporary indent level */
 static int ti;
 /* non-format flag */
-static int nf;
 
 
 static int line;
@@ -42,6 +41,9 @@ static unsigned buffer_flip_flop;
 static int rs_count;
 static int rs_stack[8];
 
+/* registers */
+static unsigned dot_j = 'b'; /* .ad register */
+static unsigned dot_u = 1; /* .fi/.nf register */
 
 #define PP_INDENT 7
 #define SS_INDENT 3
@@ -195,7 +197,7 @@ static unsigned print(const char *cp, int fi) {
 				set_font(c);
 				break;
 			case ZWSPACE: break;
-			case NBSPACE: fputc(' ', stdout); length++; break;
+			case NBSPACE: case XSPACE: fputc(' ', stdout); length++; break;
 			case ' ': case '\t':
 				if (fi) {
 					c = ' ';
@@ -216,40 +218,54 @@ static void flush(unsigned justify) {
 	int padding;
 	int holes;
 
-	if (!buffer_offset) {
-		/* what if it, eg, enables bold? */
-		/*
-		assert(buffer_offset == 0);
-		assert(buffer[0] == 0);
-		*/
-		return;
-	}
 
 	/* removing trailing whitespace. */
-	i = buffer_offset - 1;
+	i = buffer_offset;
+	if (!i) return;
 	while (i) {
-		char c;
+		unsigned char c;
 		c = buffer[i-1];
-		if (c == ' ' || c == '\t' || c == NBSPACE){ --i; --buffer_width; }
+		if (c == ' ' || c == XSPACE ){ --i; --buffer_width; }
 		else break;
 	}
+	if (!i) goto exit;
 	buffer[i] = 0;
 
+
+	buffer_flip_flop = !buffer_flip_flop;
 	padding = width - buffer_width;
 	holes = buffer_words - 1;
 	if (padding <= 0 || holes <= 0) justify = 0;
 
-	buffer_flip_flop = !buffer_flip_flop;
-	padding += holes;
 
 	/* indent. */
 	indent();
+
+
+	if (dot_j == 'l') {
+		print(buffer, 0);
+		goto exit;
+	}
+	if (dot_j == 'r') {
+		while(padding--) fputc(' ', stdout);
+		print(buffer, 0);
+		goto exit;
+	}
+	if (dot_j == 'c') {
+		/* if (buffer_flip_flop) ++padding; */
+		padding >>= 1;
+		while(padding--) fputc(' ', stdout);
+		print(buffer, 0);
+		goto exit;
+	}
+
+	padding += holes;
 
 	for (i = 0; ; ++i) {
 		unsigned char c = buffer[i];
 		if (c == 0) break;
 		switch(c) {
-			case ' ': case '\t':
+			case XSPACE:
 				if (justify) {
 					int j;
 					int fudge;
@@ -276,7 +292,10 @@ static void flush(unsigned justify) {
 		}
 	}
 
+
+exit:
 	fputc('\n', stdout); ++line;
+exit2:
 	buffer_width = 0;
 	buffer_offset = 0;
 	buffer_words = 0;
@@ -348,12 +367,12 @@ static void append(const char *cp) {
 				if (c == 0 && j > 1) {
 					/* if word ends w/ [.?!] should add extra space */
 					if (is_sentence(cp, j)) {
-						buffer[k++] = NBSPACE; /* stripped if end */
+						buffer[k++] = ' ';
 						xlen++;
 					}
 				}
 
-				buffer[k++] = ' ';
+				buffer[k++] = XSPACE;
 				buffer[k] = 0;
 				xlen++; /* space */
 				buffer_width += xlen;
@@ -372,31 +391,57 @@ static void append(const char *cp) {
 	}
 }
 
-static void set_tag(const char *cp) {
+static int xstrlen(const char *cp) {
+	int length = 0;
+	unsigned i;
+	for (i = 0; ; ++i) {
+		unsigned char c = cp[i];
+		if (!c) return length;
+		if (c <= NBSPACE) length++;
+	}
+}
+
+
+static void set_tag(const char *cp, unsigned bold) {
 	/* set the tag for IP/TP */
+	int n;
 	int xline = line;
 
 	/* assumes buffer has been flushed */
 	/* set_indent(LM + IP, LM); */
 
-	append(cp);
-	if (line > xline || buffer_width > IP) {
+	n = xstrlen(cp);
+	if (n >= width || n > IP) { 
+		append(cp);
 		flush(0);
 	} else {
+		unsigned char c;
+		unsigned j = 0;
 		unsigned i;
-		for (i = 0; i < buffer_offset; ++i) {
-			char c = buffer[i];
-			if (c == ' ' || c == '\t') buffer[i] = NBSPACE;
+		if (bold) buffer[buffer_offset++] = FONT_B;
+		for (i = 0; ; ++i) {
+			c = cp[i];
+			if (c == 0) break;
+			if (c == ' ' || c == '\t') c = NBSPACE;
+			buffer[buffer_offset++] = c;
+			if (c <= NBSPACE) buffer_width++;
 		}
-		while (buffer_width < IP) {
-			buffer[buffer_offset++] = NBSPACE;
-			buffer_width++;
-		}
+		if (bold) buffer[buffer_offset++] = FONT_R;
 		buffer[buffer_offset] = 0;
-		buffer_words = 0;
+		/*
+		if (buffer_width > IP) flush(0);
+		else {
+			*/
+			while(buffer_width < IP) {
+				buffer[buffer_offset++] = NBSPACE;
+				buffer_width++;
+			}
+			buffer[buffer_offset] = 0;
+		/* } */
 	}
-
 }
+
+
 
 static char header[80];
 static char footer[80];
@@ -505,7 +550,6 @@ static void th(void) {
 	const char *volume = NULL;
 
 	unsigned i, j, l;
-	char c;
 
 
 	if (argc >= 1) title = argv[0];
@@ -604,12 +648,16 @@ void man(FILE *fp, const char *filename) {
 
 	unsigned trap = 0;
 
+	static unsigned char fBold[2] = { FONT_B, 0 };
+	static unsigned char fRoman[2] = { FONT_R, 0 };
+
 	in = 0;
 	ti = -1;
 	PD = 1;
 	IP = PP_INDENT;
 	line = 1;
-	nf = 0;
+	dot_u = 1;
+	dot_j = 'b';
 
 	font = FONT_R;
 	prev_font = FONT_R;
@@ -672,7 +720,7 @@ void man(FILE *fp, const char *filename) {
 
 				if (argc >= 1) {
 					set_indent(LM + IP, LM);
-					set_tag(argv[0]);
+					set_tag(argv[0], 0);
 				} else {
 					set_indent(LM + IP, -1);
 				}
@@ -680,6 +728,7 @@ void man(FILE *fp, const char *filename) {
 
 			case tkHP:
 				/* hanging paragraph */
+				/* .HP [indent] */
 				trap = 0;
 				flush(0);
 				reset_font();
@@ -692,7 +741,16 @@ void man(FILE *fp, const char *filename) {
 				break;
 
 			case tkTP:
+			case tkTQ:
 				/* tagged paragraph */
+				/*
+					.TP [indent]
+					tag text
+					...
+
+					.TQ is a GNU extension; it is essentially .TP
+					without the PD padding.
+				*/
 				trap = 0;
 				flush(0);
 				reset_font();
@@ -701,18 +759,39 @@ void man(FILE *fp, const char *filename) {
 					IP = get_unit(argv[0], PP_INDENT);
 				}
 				set_indent(LM + IP, LM);
+				if (type == tkTP)
+					for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
+				trap = tkTP;
+				break;
+
+			case tkSY:
+				/*
+					GNU extension
+					.SY xxx -> .HP width(xxx) \ \fBxxx\fR
+				*/
+				trap = 0;
+				flush(0);
+				if (argc) {
+					IP = xstrlen(argv[0]) + 1;					
+				}
+				set_indent(LM + IP, LM);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
-				trap = type;
+				set_tag(argv[0], 1);
+				break;
+			case tkYS:
+				flush(0);
 				break;
 
 			case tknf:
+			case tkEX:
 				trap = 0;
 				flush(0);
-				nf = 1;
+				dot_u = 0;
 				break;
 			case tkfi:
+			case tkEE:
 				trap = 0;
-				nf = 0;
+				dot_u = 1;
 				break;
 
 			case tkin:
@@ -790,7 +869,7 @@ void man(FILE *fp, const char *filename) {
 				break;
 
 			case tkTEXT:
-				if (nf) {
+				if (!dot_u) {
 					indent();
 					print(cp, 0);
 					fputc('\n', stdout); ++line;
@@ -798,7 +877,7 @@ void man(FILE *fp, const char *filename) {
 				}
 				if (trap == tkTP) {
 					trap = 0;
-					set_tag(cp);
+					set_tag(cp, 0);
 					cp = NULL;
 				}
 				if (!cp || !cp[0]) continue;

@@ -188,6 +188,16 @@ else if (c == y4) type = v4;\
 else { --i; type = zz; }\
 break;
 
+#define _5(x1,y1,v1,y2,v2,y3,v3,y4,v4,y5,v5)\
+case x1: c = buffer[i++];\
+     if (c == y1) type = v1;\
+else if (c == y2) type = v2;\
+else if (c == y3) type = v3;\
+else if (c == y4) type = v4;\
+else if (c == y5) type = v5;\
+break;
+
+
 
 			switch(c) {
 			/* tkxx skipped tokens:
@@ -219,9 +229,10 @@ break;
 			_1 ('O', 'P', tkOP);
 			_2x('P', 'D', tkPD, 'P', tkPP, tkP);
 			_4x('R', 'B', tkRB, 'E', tkRE, 'I', tkRI, 'S', tkRS, tkR);
-			_4 ('S', 'B', tkSB, 'H', tkSH, 'M', tkSM, 'S', tkSS);
-			_2 ('T', 'H', tkTH, 'P', tkTP);
+			_5 ('S', 'B', tkSB, 'H', tkSH, 'M', tkSM, 'S', tkSS, 'Y', tkSY);
+			_3 ('T', 'H', tkTH, 'P', tkTP, 'Q', tkTQ);
 			_3 ('U', 'C', tkUC, 'E', tkUE, 'R', tkUR);
+			_1 ('Y', 'S', tkYS);
 			}
 			if (type == tkTEXT) {
 				warnx("invalid command: %s", buffer);

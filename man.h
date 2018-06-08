@@ -6,6 +6,7 @@ extern const char *argv[];
 
 enum {
 	NBSPACE = 0x80,
+	XSPACE,
 	ZWSPACE,
 	FONT_R,
 	FONT_B,
@@ -51,6 +52,9 @@ enum {
 	tkUC,
 	tkUE,
 	tkUR,
+	tkSY,
+	tkYS,
+	tkTQ,
 	/**/
 	tkbr,
 	tkfi,
