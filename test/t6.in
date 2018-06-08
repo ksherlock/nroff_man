@@ -1,0 +1,12 @@
+.TH foo 1
+.SH OPTIONS
+.TP
+.nf
+foo
+.fi
+description of foo
+.TP
+.nf
+bar
+.fi
+description of bar

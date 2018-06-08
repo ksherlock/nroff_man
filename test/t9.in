@@ -1,0 +1,6 @@
+.SY nroff
+.OP \-a
+.OP \-b arg
+.OP \-c arg
+.OP \-d
+.YS

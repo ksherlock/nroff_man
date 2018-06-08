@@ -1,0 +1,91 @@
+.\" .TP 8n
+.\" \fB\-@\fR
+.\" Display extended attribute keys and sizes in long
+.\" (\fB\-l\fR)
+.\" output.
+.\" .TP 8n
+.\" \fB\-1\fR
+.\" (The numeric digit
+.\" \(Lqone\(Rq.)
+.\" Force output to be
+.\" one entry per line.
+.\" This is the default when
+.\" output is not to a terminal.
+.\"
+.TP 20n
+\fRLSCOLORS\fR
+The value of this variable describes what color to use for which
+attribute when colors are enabled with
+\fRCLICOLOR\fR.
+This string is a concatenation of pairs of the format
+\fIf\fR\fIb\fR,
+where
+\fIf\fR
+is the foreground color and
+\fIb\fR
+is the background color.
+.sp
+The color designators are as follows:
+.sp
+.RS 26n
+.PD 0
+.TP 6n
+\fBa\fR
+black
+.TP 6n
+\fBb\fR
+red
+.TP 6n
+\fBc\fR
+green
+.TP 6n
+\fBd\fR
+brown
+.TP 6n
+\fBe\fR
+blue
+.TP 6n
+\fBf\fR
+magenta
+.TP 6n
+\fBg\fR
+cyan
+.TP 6n
+\fBh\fR
+light grey
+.TP 6n
+\fBA\fR
+bold black, usually shows up as dark grey
+.TP 6n
+\fBB\fR
+bold red
+.TP 6n
+\fBC\fR
+bold green
+.TP 6n
+\fBD\fR
+bold brown, usually shows up as yellow
+.TP 6n
+\fBE\fR
+bold blue
+.TP 6n
+\fBF\fR
+bold magenta
+.TP 6n
+\fBG\fR
+bold cyan
+.TP 6n
+\fBH\fR
+bold light grey; looks like bright white
+.TP 6n
+\fBx\fR
+default foreground or background
+.RE
+.RS 20n
+.sp
+Note that the above are standard
+ANSI
+colors.
+The actual display may differ
+depending on the color capabilities of the terminal in use.
+.sp

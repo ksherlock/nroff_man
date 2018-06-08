@@ -1,0 +1,19 @@
+.\"
+.\" extra space after example code?
+.\"
+.TH xxx
+.PD
+.TP 5n
+2.\&
+If the first or second line of the input file matches the
+\fBemacs\fR
+mode line format
+.sp 1
+.RS 11n
+\&.\e" -*- [...;] coding: \fIencoding\fR; -*-
+.RE
+.RS 5n
+.sp
+then input is interpreted according to
+\fIencoding\fR.
+.RE

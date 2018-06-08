@@ -1,0 +1,14 @@
+.\" mandoc adds .br - why?
+.TP 13n
+\fB\-T\fR \fBmarkdown\fR
+.br
+Produce output in
+\fBmarkdown\fR
+format.
+See
+\fIMarkdown Output\fR.
+.TP 13n
+\fB\-T\fR \fBpdf\fR
+Produce PDF output.
+See
+\fIPDF Output\fR.

@@ -1,0 +1,23 @@
+.\"
+.\" justification problems.
+.\"
+.PP
+verylongword verylongword verylongword verylongword.
+xverylongword xverylongword xverylongword xverylongword.
+xxverylongword xxverylongword xxverylongword xxverylongword.
+xxverylongword xxverylongword xxverylongword xxverylongword.
+xxverylongword xxverylongword xxverylongword xxverylongword.
+xxverylongword xxverylongword xxverylongword xxverylongword.
+xxverylongword xxverylongword xxverylongword xxverylongword.
+xxverylongword xxverylongword xxverylongword xxverylongword.
+.PP
+.R "\fBinput too large\fR
+.br
+(mdoc, man)
+Currently,
+\fBmandoc\fR
+cannot handle input files larger than its arbitrary size limit
+of 2^31 bytes (2 Gigabytes).
+Since useful manuals are always small, this is not a problem in practice.
+Parsing is aborted as soon as the condition is detected.
+.PP
