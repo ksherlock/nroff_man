@@ -1,19 +1,28 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 #include <err.h>
 #include "man.h"
 
+
+#define MAX_ARGC 32
 
 static char buffer[4096];
 static char out_buffer[4096];
 int type = tkTEXT;
 int argc = 0;
-const char *argv[32];
-static int eof = 0;
+const char *argv[MAX_ARGC];
 static char cc = '.';
+static char ec = '\\';
 
-static FILE *infile = NULL;
+
+#define MAX_SO 4
+struct so_entry {
+	FILE *fp;
+	char *name;
+} so_entries[MAX_SO];
+static int so_index = -1;
 
 static void parse_text(void);
 static void parse_args(unsigned);
@@ -64,21 +73,34 @@ unsigned get_arg(unsigned *i_ptr, unsigned type) {
 
 
 
-void read_init(FILE *fp) {
-	infile = fp;
+void read_init(FILE *fp, const char *name) {
+	int i;
+
 	type = fp ? tkTEXT : tkEOF;
-	eof = fp ? 0 : 1;
 	buffer[0] = 0;
 	out_buffer[0] = 0;
 	argc = 0;
 	argv[0] = NULL;
 	cc = '.';
+	ec = '\\';
+
+
+	for (i = 0; i <= so_index; ++i) free(so_entries[i].name);
+	for (i = 1; i <= so_index; ++i) fclose(so_entries[i].fp);
+	so_index = -1;
+
+	if (fp) {
+		so_index = 0;
+		so_entries[0].fp = fp;
+		so_entries[0].name = strdup(name);
+	}
 }
+
 
 const char *read_line(void) {
 
 
-	if (eof) { type = tkEOF; return NULL; }
+	if (so_index < 0) { type = tkEOF; return NULL; }
 
 	for(;;) {
 		unsigned escape = 0;
@@ -91,9 +113,14 @@ const char *read_line(void) {
 
 		for(;;) {
 			int bits;
-			char *cp = fgets(buffer + offset, sizeof(buffer) - offset, infile);
+			char *cp = fgets(buffer + offset, sizeof(buffer) - offset, so_entries[so_index].fp);
 			if (cp == NULL) {
 				if (offset) break;
+
+				free(so_entries[so_index].name);
+				if (so_index) fclose(so_entries[so_index].fp);
+				--so_index;
+				if (so_index >= 0) continue;
 				type = tkEOF;
 				return NULL;
 			}
@@ -167,13 +194,18 @@ break;
 				.ad [blrc] - text justification
 				.if ...
 				.nh - no hyphenation
+				.ne # - page break unless >= N lines available.
+				.cc - command char (.)
+				.ec - escape char (\)
+				.eo - escape char off.
 			*/
 			_1 ('a', 'd', tkxx);
 			_1 ('b', 'r', tkbr);
 			_1 ('c', 'c', tkcc);
+			_2 ('e', 'c', tkec, 'o', tkeo);
 			_1 ('f', 'i', tkfi);
 			_2 ('i', 'n', tkin, 'f', tkxx);
-			_2 ('n', 'f', tknf, 'h', tkxx);
+			_3 ('n', 'f', tknf, 'e', tkxx, 'h', tkxx);
 			_2 ('s', 'o', tkso, 'p', tksp);
 			/* */
 			_1 ('A', 'T', tkAT);
@@ -200,15 +232,47 @@ break;
 				warnx("invalid command: %s", buffer);
 				continue;
 			}
-			if (type == tkxx) continue;
-			if (type == tkcc) {
-				/* quotes not supported. */
-				while (isspace(c = buffer[i])) ++i;
-				cc = c == 0 ? '.' : c;
-				continue;
-			}
-			parse_args(i);
-			return "";
+			switch(type) {
+				case tkxx: continue;
+				case tkcc:
+					/* quotes not supported. */
+					while (isspace(c = buffer[i])) ++i;
+					cc = c == 0 ? '.' : c;
+					continue;
+				case tkeo: ec = 0; continue;
+				case tkec:
+					while (isspace(c = buffer[i])) ++i;
+					ec = c == 0 ? '\\' : c;
+					continue;
+
+				case tkso: {
+					/* heirloom troff so supports quotes. */
+					/* mandoc and groff do not. */
+					/* groff strips trailing ws; mandoc does not */
+					char *cp;
+					while (isspace(buffer[i])) ++i;
+					cp = buffer + i;
+					if (cp[0]) {
+						if (so_index == MAX_SO-1) {
+							warnx("too many .so requests.");
+							continue;
+						}
+						FILE *fp = fopen(cp, "r");
+						if (!fp) {
+							warn(".so %s", cp);
+							continue;
+						}
+						++so_index;
+						so_entries[so_index].fp = fp;
+						so_entries[so_index].name = strdup(cp);
+					}
+					continue;
+				}
+
+				default:
+					parse_args(i);
+					return "";
+				}
 		}
 		type = tkTEXT;
 		if (!escape) return buffer;
@@ -253,7 +317,7 @@ static unsigned analyze(unsigned *i_ptr) {
 		}
 		if (c == ' ' || c == '\t') continue;
 		if (c >= 0x80 || c < 0x20) { buffer[j] = ZWSPACE; escape = 1; continue; }
-		if (c != '\\') continue;
+		if (c != ec) continue;
 		c = buffer[i++];
 		switch(c) {
 			default:
@@ -360,6 +424,10 @@ void parse_args(unsigned i) {
 		c = buffer[i];
 		if (c == 0) goto _break;
 		if (c == '"') { quote = 1; ++i; }
+		if (argc == MAX_ARGC-1) {
+			argv[argc] = NULL;
+			return;
+		}
 		argv[argc++] = out_buffer + j;
 
 		for(;;) {
@@ -380,7 +448,7 @@ void parse_args(unsigned i) {
 				break;
 			}
 
-			if (c != '\\') {
+			if (c != ec) {
 				out_buffer[j++] = c;
 				continue;
 			}
@@ -406,7 +474,7 @@ static void parse_text(void) {
 	for (i = 0, j = 0;;) {
 		unsigned char c = buffer[i++];
 		if (c == ZWSPACE) continue;
-		if (c != '\\') {
+		if (c != ec) {
 			out_buffer[j++] = c;
 			if (c == 0) return;
 			continue;

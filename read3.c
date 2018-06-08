@@ -599,11 +599,10 @@ static void print_footer(void) {
 	th_source = NULL;
 }
 
-void man(FILE *fp) {
+void man(FILE *fp, const char *filename) {
 
 
 	unsigned trap = 0;
-	unsigned so_count = 0;
 
 	in = 0;
 	ti = -1;
@@ -633,7 +632,7 @@ void man(FILE *fp) {
 	/* indent isn't set until .SH, .SS, .PP, etc */
 	set_indent(0, -1);
 
-	read_init(fp);
+	read_init(fp, filename);
 
 
 	for(;;) {
@@ -732,20 +731,6 @@ void man(FILE *fp) {
 				}
 				break;
 			}
-			case tkso: {
-				/* .so filename */
-				if (argc){
-					FILE *tmp;
-					if (so_count > 3) errx(1, "Too many .so requests.");
-					tmp = fopen(argv[0], "r");
-					if (!tmp) errx(1, ".so %s", argv[0]);
-					if (so_count) fclose(fp);
-					++so_count;
-					fp = tmp;
-					read_init(fp);
-				}
-				break;
-			}
 
 			case tkPD:
 				PD = get_unit(argv[0], 1);
@@ -833,7 +818,5 @@ void man(FILE *fp) {
 	flush(0);
 	print_footer();
 
-	if (so_count) fclose(fp);
-
-	read_init(NULL);
+	read_init(NULL, NULL);
 }

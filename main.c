@@ -37,13 +37,13 @@ int main(int argc, char **argv) {
 	man_init();
 
 	if (argc == 0) {
-		man(stdin);
+		man(stdin, "stdin");
 	} else {
 		for (i = 0; i < argc; ++i) {
 			char *cp = argv[i];
 			FILE *fp = fopen(cp, "r");
 			if (!fp) err(1, "Unable to open %s", cp);
-			man(fp);
+			man(fp, cp);
 			fclose(fp);
 		}
 	}

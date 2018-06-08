@@ -8,7 +8,7 @@ case '&': case '|': case '^': case '%':
 case ' ': case '0':
 	out_buffer[j++] = NBSPACE; break; /* non-paddable */
 
-case 'e': out_buffer[j++] = '\\'; break;
+case 'e': out_buffer[j++] = ec; break;
 case '~': out_buffer[j++] = NBSPACE; break; /* paddable */
 case '"': goto _break; break; /* comment */
 case 't': out_buffer[j++] = '\t'; break;

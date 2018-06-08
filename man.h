@@ -59,6 +59,8 @@ enum {
 	tkso,
 	tksp,
 	tkcc,
+	tkec,
+	tkeo,
 	tkxx /* skipped */
 };
 
@@ -66,6 +68,6 @@ enum {
 const char *read_text(void);
 const char *read_line(void);
 
-void read_init(FILE *fp);
-void man(FILE *fp);
+void read_init(FILE *fp, const char *filename);
+void man(FILE *fp, const char *filename);
 void man_init(void);
