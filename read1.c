@@ -31,7 +31,8 @@ static unsigned analyze(unsigned *);
 extern const char *special_char(const char *);
 
 static char arg_buffer[32];
-/* read an argument return 0 on error */
+/* read an argument return -1 on error */
+/* 0 is length of empty [] argument... */
 unsigned get_arg(unsigned *i_ptr, unsigned type) {
 	unsigned i = *i_ptr;
 	unsigned char c = type;

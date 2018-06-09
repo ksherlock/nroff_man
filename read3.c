@@ -402,7 +402,7 @@ static int xstrlen(const char *cp) {
 }
 
 
-static void set_tag(const char *cp, unsigned bold) {
+static void set_tag(const char *cp) {
 	/* set the tag for IP/TP */
 	int n;
 	int xline = line;
@@ -411,14 +411,13 @@ static void set_tag(const char *cp, unsigned bold) {
 	/* set_indent(LM + IP, LM); */
 
 	n = xstrlen(cp);
-	if (n >= width || n > IP) { 
+	if (n >= width || n >= IP) { 
 		append(cp);
 		flush(0);
 	} else {
 		unsigned char c;
 		unsigned j = 0;
 		unsigned i;
-		if (bold) buffer[buffer_offset++] = FONT_B;
 		for (i = 0; ; ++i) {
 			c = cp[i];
 			if (c == 0) break;
@@ -426,18 +425,13 @@ static void set_tag(const char *cp, unsigned bold) {
 			buffer[buffer_offset++] = c;
 			if (c <= NBSPACE) buffer_width++;
 		}
-		if (bold) buffer[buffer_offset++] = FONT_R;
 		buffer[buffer_offset] = 0;
-		/*
-		if (buffer_width > IP) flush(0);
-		else {
-			*/
-			while(buffer_width < IP) {
-				buffer[buffer_offset++] = NBSPACE;
-				buffer_width++;
-			}
-			buffer[buffer_offset] = 0;
-		/* } */
+
+		while(buffer_width < IP) {
+			buffer[buffer_offset++] = NBSPACE;
+			buffer_width++;
+		}
+		buffer[buffer_offset] = 0;
 	}
 }
 
@@ -720,7 +714,7 @@ void man(FILE *fp, const char *filename) {
 
 				if (argc >= 1) {
 					set_indent(LM + IP, LM);
-					set_tag(argv[0], 0);
+					set_tag(argv[0]);
 				} else {
 					set_indent(LM + IP, -1);
 				}
@@ -776,7 +770,7 @@ void man(FILE *fp, const char *filename) {
 				}
 				set_indent(LM + IP, LM);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
-				set_tag(argv[0], 1);
+				set_tag(argv[0]);
 				break;
 			case tkYS:
 				flush(0);
@@ -877,7 +871,7 @@ void man(FILE *fp, const char *filename) {
 				}
 				if (trap == tkTP) {
 					trap = 0;
-					set_tag(cp, 0);
+					set_tag(cp);
 					cp = NULL;
 				}
 				if (!cp || !cp[0]) continue;
@@ -895,7 +889,7 @@ void man(FILE *fp, const char *filename) {
 		}
 	}
 	flush(0);
+	reset_font();
 	print_footer();
-
 	read_init(NULL, NULL);
 }

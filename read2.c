@@ -70,6 +70,20 @@ const char *read_text(void) {
 				ff = FONT_I;
 				if (argc) return font(ff);
 				continue;
+			case tkSY:
+				/* bold up argv0 but retain the type */
+				if (argc) {
+					unsigned i, j;
+					char *cp = argv[0];
+					buffer[0] = FONT_B;
+					i = 0;
+					j = 1;
+					while ((buffer[j++] = cp[i++])) ;
+					buffer[j++] = FONT_R;
+					buffer[j] = 0;
+					argv[0] = buffer;
+					return "";
+				}
 
 			/* current-line fonts */
 			case tkBI: return fonts(FONT_B, FONT_I);

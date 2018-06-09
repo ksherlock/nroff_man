@@ -20,7 +20,7 @@ case 'z':
 case '(': {
 	unsigned k = 0;
 	const char *cp;
-	if (!get_arg(&i, '(')) goto _break;
+	if (get_arg(&i, '(') < 0) goto _break;
 	cp = special_char(arg_buffer);
 	while ((c = cp[k++])) out_buffer[j++] = c;
 	break;
@@ -28,7 +28,7 @@ case '(': {
 case '*':
 	/* pre-defined strings.. */
 	/* \*X or \*(XX  \*[...] */
-	if (!get_arg(&i, 0)) goto _break;
+	if (get_arg(&i, 0) < 0) goto _break;
 	break;
 
 case '[': {
@@ -46,8 +46,9 @@ case 'f': {
 	/* \fC?[321] */
 	/* \f(BI */
 	if (buffer[i] == 'C') ++i;
-	if (!get_arg(&i, 0)) goto _break;
+	if (get_arg(&i, 0) < 0) goto _break;
 	switch(arg_buffer[0]) {
+		default:
 		case 'R': case '1': out_buffer[j++] = FONT_R; break;
 		case 'B': case '3': out_buffer[j++] = FONT_B; break;
 		case 'I': case '2': out_buffer[j++] = FONT_I; break;
@@ -57,7 +58,7 @@ case 'f': {
 }
 case 'F': case 'g': case 'k': case 'M': case 'm': 
 case 'n': case 'V': case 'Y':
-	if (!get_arg(&i, 0)) goto _break;
+	if (get_arg(&i, 0) < 0) goto _break;
 	break;
 
 case 'A': case 'B': case 'b': case 'C': case 'D': 
