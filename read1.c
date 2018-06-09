@@ -2,17 +2,18 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <err.h>
 #include "man.h"
 
 
-#define MAX_ARGC 32
+#define MAX_ARGC 9
 
 static char buffer[4096];
 static char out_buffer[4096];
 int type = tkTEXT;
 int argc = 0;
-const char *argv[MAX_ARGC];
+const char *argv[MAX_ARGC+1];
 static char cc = '.';
 static char ec = '\\';
 
@@ -435,7 +436,7 @@ void parse_args(unsigned i) {
 		c = buffer[i];
 		if (c == 0) goto _break;
 		if (c == '"') { quote = 1; ++i; }
-		if (argc == MAX_ARGC-1) {
+		if (argc == MAX_ARGC) {
 			argv[argc] = NULL;
 			return;
 		}
