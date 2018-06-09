@@ -1,8 +1,12 @@
 
 CFLAGS = -Wall -g -std=c89
-CPPFLAGS = -D_BSD_SOURCE
+CPPFLAGS = -D_DEFAULT_SOURCE
 LDLIBS = -ltermcap
 OBJS = main.o read1.o read2.o read3.o
+
+ifeq ($(MSYSTEM),MSYS)
+	LDLIBS = -lncurses
+endif
 
 nroff_man: $(OBJS)
 	$(CC) $^ $(LDLIBS) -o $@
