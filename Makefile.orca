@@ -1,0 +1,26 @@
+CC = occ --gno
+CFLAGS = -O79 -w-1
+NOROOT = -r
+LDLIBS = -ltermcap.204
+OBJS = orca/main.a orca/read1.a orca/read2.a orca/read3.a orca/chars.a
+
+
+nroff_man_orca: $(OBJS)
+	$(CC) $^ $(LDLIBS) -o $@
+
+orca/main.a : NOROOT=
+orca/read3.a : read3.c man.h
+orca/read2.a : read1.c man.h
+orca/read1.a : read1.c man.h escape.h
+orca/chars.a : chars.c chars.h
+
+.PHONY: clean
+
+clean:
+	$(RM) $(OBJS)
+
+orca:
+	mkdir orca
+
+orca/%.a : %.c | orca
+	$(CC) $< $(CFLAGS) $(NOROOT) -c -o $@

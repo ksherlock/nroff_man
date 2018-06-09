@@ -1,13 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
+#include <unistd.h>
 #include <string.h>
 #include <err.h>
 
 #include "man.h"
 
-
-const char *special_char(const char *cp) { return ""; }
 
 static void usage(void) {
 

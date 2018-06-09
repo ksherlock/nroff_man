@@ -34,11 +34,11 @@ case '*':
 
 case '[': {
 	/* [name] - not yet supported. */
-	for (;;) {
-		c = buffer[i++];
-		if (c == 0) goto _break;
-		if (c == ']') break;
-	}
+	unsigned k = 0;
+	const char *cp;
+	if (get_arg(&i, '[') < 0) goto _break;
+	cp = special_char(arg_buffer);
+	while ((c = cp[k++])) out_buffer[j++] = c;
 	break;
 }
 

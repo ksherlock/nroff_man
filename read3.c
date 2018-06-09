@@ -796,9 +796,10 @@ void man(FILE *fp, const char *filename) {
 				flush(0);
 				break;
 			case tksp: {
+				int n;
 				trap = 0;
 				flush(0);
-				int n = get_unit(argv[0], 1);
+				n = get_unit(argv[0], 1);
 				while (--n >= 0 ) {
 					fputc('\n', stdout); ++line;
 				}
@@ -851,7 +852,7 @@ void man(FILE *fp, const char *filename) {
 				reset_font();
 
 				na = 0;
-				ad = 'l';
+				ad = 'b';
 				fi = 1;
 
 				LM = PP_INDENT;

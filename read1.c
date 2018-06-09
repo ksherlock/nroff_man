@@ -287,11 +287,12 @@ break;
 					while (isspace(buffer[i])) ++i;
 					cp = buffer + i;
 					if (cp[0]) {
+						FILE *fp;
 						if (so_index == MAX_SO-1) {
 							warnx("too many .so requests.");
 							continue;
 						}
-						FILE *fp = fopen(cp, "r");
+						fp = fopen(cp, "r");
 						if (!fp) {
 							warn(".so %s", cp);
 							continue;
