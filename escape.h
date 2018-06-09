@@ -1,10 +1,11 @@
 case 0: goto _break;
 
-case '&': case '|': case '^': case '%':
-	/* out_buffer[j++] = ZWSPACE; break; */
+case '&': case '|': case '^':
+	out_buffer[j++] = ZWSPACE; break;
 	break;
+case '%':
+	out_buffer[j++] = HYPHEN; break;
 
-	/* \% is a hyphenation point. */
 case ' ': case '0':
 	out_buffer[j++] = NBSPACE; break; /* non-paddable */
 

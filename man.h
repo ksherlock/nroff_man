@@ -12,6 +12,7 @@ enum {
 	FONT_B,
 	FONT_I,
 	FONT_P,
+	HYPHEN,
 };
 
 
