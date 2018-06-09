@@ -40,6 +40,12 @@ static char *font(unsigned f) {
 	return buffer;
 }
 
+unsigned xstrcpy(char *dest, const char *src) {
+	unsigned i = 0;
+	while ((dest[i] = src[i])) ++i;
+	return i;
+}
+
 const char *read_text(void) {
 
 	unsigned ff = 0;
@@ -73,15 +79,12 @@ const char *read_text(void) {
 			case tkSY:
 				/* bold up argv0 but retain the type */
 				if (argc) {
-					unsigned i, j;
-					char *cp = argv[0];
+					unsigned i;
 					buffer[0] = FONT_B;
-					i = 0;
-					j = 1;
-					while ((buffer[j++] = cp[i++])) ;
-					/* n.b. i = j-1.  buffer[j-1] = 0 */
-					buffer[i++] = FONT_R;
-					buffer[i] = 0;
+					i = xstrcpy(buffer+1, argv[0]);
+					/* pre-increment to adjust for buffer+1 */
+					buffer[++i] = FONT_R;
+					buffer[++i] = 0;
 					argv[0] = buffer;
 					return "";
 				}
@@ -94,24 +97,34 @@ const char *read_text(void) {
 			case tkRI: return fonts(FONT_R, FONT_I);
 			case tkRB: return fonts(FONT_R, FONT_B);
 
-			case tkOP:
+			case tkOP: {
+				unsigned i;
 				if (argc == 0) continue;
-				if (argc == 1)
-					sprintf(buffer, "[%c%s%c]",
-						FONT_B, argv[0], FONT_R
-					);
-				else
-					sprintf(buffer, "[%c%s%c%c%c%s%c]",
-						FONT_B, argv[0], FONT_R,
-						NBSPACE,
-						FONT_I, argv[1], FONT_R);
+					buffer[0] = '[';
+					buffer[1] = FONT_B;
+					i = 2 + xstrcpy(buffer+2, argv[0]);
+					buffer[i++] = FONT_R;
+					if (argc > 1) {
+						buffer[i++] = NBSPACE;
+						buffer[i++] = FONT_I;
+						i += xstrcpy(buffer + i, argv[1]);
+						buffer[i++] = FONT_R;
+					}
+					buffer[i++] = ']'; 
+					buffer[i] = 0; 
+				}
 				type = tkTEXT;
 				return buffer;
 
 			case tkTEXT:
 				if (ff) {
-					sprintf(buffer, "%c%s%c",
-						ff, cp, FONT_R);
+					unsigned i;
+					buffer[0] = ff;
+					i = xstrcpy(buffer+1, cp);
+					/* pre-increment to adjust for buffer+1 */
+					buffer[++i] = FONT_R;
+					buffer[++i] = 0;
+					ff = 0;
 					return buffer;
 				}
 			default:
