@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <string.h>
 #include <err.h>
 
 #include "man.h"
@@ -17,7 +18,7 @@ int main(int argc, char **argv) {
 	int i;
 	int ch;
 
-	while (( ch = getopt(argc, argv, "h")) != -1) {
+	while (( ch = getopt(argc, argv, "hW:I:")) != -1) {
 		switch(ch) {
 			case '?':
 			case ':':
@@ -27,6 +28,13 @@ int main(int argc, char **argv) {
 			case 'h':
 				usage();
 				exit(0);
+			case 'W':
+				flags.W = 1;
+				break;
+			case 'I':
+				if (strncmp(optarg, "os=", 3) == 0)
+					flags.os = optarg + 3;
+				break;
 		}
 	}
 

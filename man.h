@@ -4,6 +4,15 @@ extern int type;
 extern int argc;
 extern const char *argv[];
 
+extern unsigned na;
+extern unsigned ad; /* .j */
+extern unsigned fi; /* .u */
+
+extern struct flags {
+	unsigned W;
+	const char *os;
+} flags;
+
 enum {
 	NBSPACE = 0x80,
 	XSPACE,
@@ -66,6 +75,8 @@ enum {
 	tkcc,
 	tkec,
 	tkeo,
+	tkad,
+	tkna,
 	tkxx /* skipped */
 };
 

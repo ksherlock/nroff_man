@@ -18,10 +18,19 @@ static char cc = '.';
 static char ec = '\\';
 
 
+/* registers */
+unsigned ad = 'b'; /* .ad register */
+unsigned fi = 1; /* .fi/.nf register */
+unsigned na = 0;
+
+
+struct flags flags = { 0, 0 };
+
 #define MAX_SO 4
 struct so_entry {
 	FILE *fp;
 	char *name;
+	unsigned line;
 } so_entries[MAX_SO];
 static int so_index = -1;
 
@@ -33,7 +42,7 @@ extern const char *special_char(const char *);
 static char arg_buffer[32];
 /* read an argument return -1 on error */
 /* 0 is length of empty [] argument... */
-unsigned get_arg(unsigned *i_ptr, unsigned type) {
+int get_arg(unsigned *i_ptr, unsigned type) {
 	unsigned i = *i_ptr;
 	unsigned char c = type;
 
@@ -95,6 +104,7 @@ void read_init(FILE *fp, const char *name) {
 		so_index = 0;
 		so_entries[0].fp = fp;
 		so_entries[0].name = strdup(name);
+		so_entries[0].line = 0;
 	}
 }
 
@@ -126,6 +136,7 @@ const char *read_line(void) {
 				type = tkEOF;
 				return NULL;
 			}
+			so_entries[so_index].line++;
 
 			bits = analyze(&offset);
 			if (bits & 0x01) escape = 1;
@@ -211,13 +222,13 @@ break;
 				.ec - escape char (\)
 				.eo - escape char off.
 			*/
-			_1 ('a', 'd', tkxx);
+			_1 ('a', 'd', tkad);
 			_1 ('b', 'r', tkbr);
 			_1 ('c', 'c', tkcc);
 			_2 ('e', 'c', tkec, 'o', tkeo);
 			_1 ('f', 'i', tkfi);
 			_2 ('i', 'n', tkin, 'f', tkxx);
-			_3 ('n', 'f', tknf, 'e', tkxx, 'h', tkxx);
+			_4 ('n', 'f', tknf, 'a', tkna, 'e', tkxx, 'h', tkxx);
 			_2 ('s', 'o', tkso, 'p', tksp);
 			/* */
 			_1 ('A', 'T', tkAT);
@@ -256,6 +267,16 @@ break;
 				case tkec:
 					while (isspace(c = buffer[i])) ++i;
 					ec = c == 0 ? '\\' : c;
+					continue;
+
+				case tkad:
+					na = 0;
+					while (isspace(c = buffer[i])) ++i;
+					if (c == 'b' || c == 'c' || c == 'l' || c == 'r')
+						ad = c;
+					continue;
+				case tkna:
+					na = 1;
 					continue;
 
 				case tkso: {

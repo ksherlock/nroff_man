@@ -41,9 +41,7 @@ static unsigned buffer_flip_flop;
 static int rs_count;
 static int rs_stack[8];
 
-/* registers */
-static unsigned dot_j = 'b'; /* .ad register */
-static unsigned dot_u = 1; /* .fi/.nf register */
+
 
 #define PP_INDENT 7
 #define SS_INDENT 3
@@ -242,16 +240,16 @@ static void flush(unsigned justify) {
 	indent();
 
 
-	if (dot_j == 'l') {
+	if (na || ad == 'l') {
 		print(buffer, 0);
 		goto exit;
 	}
-	if (dot_j == 'r') {
+	if (ad == 'r') {
 		while(padding--) fputc(' ', stdout);
 		print(buffer, 0);
 		goto exit;
 	}
-	if (dot_j == 'c') {
+	if (ad == 'c') {
 		/* if (buffer_flip_flop) ++padding; */
 		padding >>= 1;
 		while(padding--) fputc(' ', stdout);
@@ -620,13 +618,15 @@ static void th(void) {
 static void print_footer(void) {
 
 	unsigned i;
+	const char *cp = NULL;
 	char c;
 
 	if (!header[0]) return;
 
-	if (th_source) {
+	cp = th_source ? th_source : flags.os;
+	if (cp) {
 		i = 0;
-		while ((c = th_source[i])) footer[i++] = c;
+		while ((c = cp[i])) footer[i++] = c;
 	}
 
 	fputs("\n\n\n", stdout); line += 3;
@@ -642,16 +642,16 @@ void man(FILE *fp, const char *filename) {
 
 	unsigned trap = 0;
 
-	static unsigned char fBold[2] = { FONT_B, 0 };
-	static unsigned char fRoman[2] = { FONT_R, 0 };
 
 	in = 0;
 	ti = -1;
 	PD = 1;
 	IP = PP_INDENT;
 	line = 1;
-	dot_u = 1;
-	dot_j = 'b';
+
+	fi = 1;
+	ad = 'b';
+	na = 0;
 
 	font = FONT_R;
 	prev_font = FONT_R;
@@ -780,12 +780,12 @@ void man(FILE *fp, const char *filename) {
 			case tkEX:
 				trap = 0;
 				flush(0);
-				dot_u = 0;
+				fi = 0;
 				break;
 			case tkfi:
 			case tkEE:
 				trap = 0;
-				dot_u = 1;
+				fi = 1;
 				break;
 
 			case tkin:
@@ -849,8 +849,16 @@ void man(FILE *fp, const char *filename) {
 				trap = 0;
 				flush(0);
 				reset_font();
+
+				na = 0;
+				ad = 'l';
+				fi = 1;
+
 				LM = PP_INDENT;
 				IP = PP_INDENT;
+				if (type == tkSH && argc == 1 && !strcmp(argv[0], "SYNOPSIS")) {
+					na = 1;
+				}
 				set_indent(PP_INDENT, type == tkSS ? SS_INDENT : SH_INDENT);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				if (argc) {
@@ -863,7 +871,7 @@ void man(FILE *fp, const char *filename) {
 				break;
 
 			case tkTEXT:
-				if (!dot_u) {
+				if (!fi) {
 					indent();
 					print(cp, 0);
 					fputc('\n', stdout); ++line;
