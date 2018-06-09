@@ -79,8 +79,9 @@ const char *read_text(void) {
 					i = 0;
 					j = 1;
 					while ((buffer[j++] = cp[i++])) ;
-					buffer[j++] = FONT_R;
-					buffer[j] = 0;
+					/* n.b. i = j-1.  buffer[j-1] = 0 */
+					buffer[i++] = FONT_R;
+					buffer[i] = 0;
 					argv[0] = buffer;
 					return "";
 				}
