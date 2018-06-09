@@ -1,0 +1,4 @@
+.RS
+.IP MSG_OOB
+process out-of-band data
+.RE
