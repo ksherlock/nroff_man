@@ -194,7 +194,7 @@ static unsigned print(const char *cp, int fi) {
 			case FONT_R: case FONT_B: case FONT_I: case FONT_P:
 				set_font(c);
 				break;
-			case ZWSPACE: break;
+			case HYPHEN: case ZWSPACE: break;
 			case NBSPACE: case XSPACE: fputc(' ', stdout); length++; break;
 			case ' ': case '\t':
 				if (fi) {
@@ -284,7 +284,7 @@ static void flush(unsigned justify) {
 			case FONT_R: case FONT_B: case FONT_I: case FONT_P:
 				set_font(c);
 				break;
-			case ZWSPACE: break;
+			case HYPHEN: case ZWSPACE: break;
 			case NBSPACE: fputc(' ', stdout); break;
 			default: fputc(c, stdout);
 		}
@@ -319,6 +319,45 @@ static unsigned is_sentence(const char *cp, unsigned offset) {
 	return 0;
 }
 
+
+static int hyphenate(const unsigned char *in, unsigned available, int *rv) {
+	/* check for hyphens in the text... */
+	unsigned char c;
+	unsigned i;
+	int hpos = -1;
+	unsigned hlen = 0;
+	unsigned xlen = 0;
+
+	for (i = 0; ; ) {
+		c = in[i++];
+		switch(c) {
+		case HYPHEN: hpos = i; hlen = xlen; break;
+		case ' ': case '\t': case 0:
+				if (hlen) {
+					rv[0] = hpos;
+					rv[1] = hlen;
+					return 1;
+				}
+				return 0;
+		default:
+			if (c <= NBSPACE) {
+				xlen++;
+				if (xlen >= available) {
+					if (hlen) {
+						rv[0] = hpos;
+						rv[1] = hlen;
+						return 1;
+					}
+					return 0;
+				}
+			}
+			break;
+		}
+	}
+	return -1;
+}
+
+
 /* append buffer */
 static void append(const char *cp) {
 
@@ -326,6 +365,7 @@ static void append(const char *cp) {
 	unsigned i, j, k;
 	unsigned xlen;
 	unsigned char c;
+	unsigned hyphen = 0;
 
 	xlen = 0;
 	i = 0;
@@ -343,12 +383,36 @@ static void append(const char *cp) {
 		for(;;++i) {
 			c = cp[i];
 			if (c == 0 || isspace(c)) {
+				int avail;
 				end = i;
 				/* xlen = printed size */
 				/* if word ends w [.?!], should add 2 spaces...
 				*/
 				/* flush() depends on buffer_offset, etc */
+				avail = width - buffer_width;
+
 				if (buffer_width + xlen > width) {
+
+					/* try to hyphenate */
+					if (hy && avail > 2) {
+						int cookie[2];
+						int ok;
+						ok = hyphenate(cp + start, avail, cookie);
+						if (ok) {
+							unsigned xend;
+							xend = start + cookie[0];
+
+							for (j = start; j < xend; ++j)
+								buffer[k++] = cp[j];
+							buffer[k++] = '-';
+							buffer_width += cookie[1] + 1;
+							buffer_words++;
+
+							xlen -= cookie[1];
+							start = xend;
+						}
+					}
+
 					buffer_offset = k;
 					buffer[k] = 0;
 					flush(1);
@@ -357,6 +421,7 @@ static void append(const char *cp) {
 				
 				if (xlen > width) {
 					warnx("Word is too long.");
+					xlen = 0;
 					continue;
 				}
 				for (j = start; j < end; ++j)
@@ -380,6 +445,7 @@ static void append(const char *cp) {
 					buffer_offset = k;
 					return;
 				}
+				xlen = 0;
 				break;
 
 			} else {
@@ -652,6 +718,7 @@ void man(FILE *fp, const char *filename) {
 	fi = 1;
 	ad = 'b';
 	na = 0;
+	hy = 1;
 
 	font = FONT_R;
 	prev_font = FONT_R;

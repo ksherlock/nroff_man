@@ -22,6 +22,7 @@ static char ec = '\\';
 unsigned ad = 'b'; /* .ad register */
 unsigned fi = 1; /* .fi/.nf register */
 unsigned na = 0;
+unsigned hy = 1;
 
 
 struct flags flags = { 0, 0 };
@@ -227,8 +228,9 @@ break;
 			_1 ('c', 'c', tkcc);
 			_2 ('e', 'c', tkec, 'o', tkeo);
 			_1 ('f', 'i', tkfi);
+			_1 ('h', 'y', tkhy);
 			_2 ('i', 'n', tkin, 'f', tkxx);
-			_4 ('n', 'f', tknf, 'a', tkna, 'e', tkxx, 'h', tkxx);
+			_4 ('n', 'f', tknf, 'a', tkna, 'e', tkxx, 'h', tknh);
 			_2 ('s', 'o', tkso, 'p', tksp);
 			/* */
 			_1 ('A', 'T', tkAT);
@@ -275,9 +277,16 @@ break;
 					if (c == 'b' || c == 'c' || c == 'l' || c == 'r')
 						ad = c;
 					continue;
-				case tkna:
-					na = 1;
+				case tkna: na = 1; continue;
+				case tknh: hy = 0; continue;
+				case tkhy: {
+					/* .hy # */
+					/* 0 = off, 1 = on, 2,4,8 have other implications */
+					while (isspace(c = buffer[i])) ++i;
+					if (c == '0') hy = 0;
+					else hy = 1;
 					continue;
+				}
 
 				case tkso: {
 					/* heirloom troff so supports quotes. */

@@ -7,6 +7,7 @@ extern const char *argv[];
 extern unsigned na;
 extern unsigned ad; /* .j */
 extern unsigned fi; /* .u */
+extern unsigned hy;
 
 extern struct flags {
 	unsigned W;
@@ -77,6 +78,8 @@ enum {
 	tkeo,
 	tkad,
 	tkna,
+	tknh,
+	tkhy,
 	tkxx /* skipped */
 };
 
