@@ -7,13 +7,13 @@ struct chars {
 
 static struct chars char_table[] = {
 
-#include "chars.h"
+#include "man.chars.h"
 
 };
 
 static struct chars string_table[] = {
 #define PREDEF(a,b,c) { (a << 8) + b, c }, 
-#include "strings.h"
+#include "man.strings.h"
 
 };
 

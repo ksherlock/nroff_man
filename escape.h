@@ -6,11 +6,11 @@ case '&': case '|': case '^':
 case '%':
 	out_buffer[j++] = HYPHEN; break;
 
+case '~': /* paddable */
 case ' ': case '0':
 	out_buffer[j++] = NBSPACE; break; /* non-paddable */
 
 case 'e': out_buffer[j++] = ec; break;
-case '~': out_buffer[j++] = NBSPACE; break; /* paddable */
 case '"': goto _break; break; /* comment */
 case 't': out_buffer[j++] = '\t'; break;
 
@@ -23,6 +23,7 @@ case '(': {
 	const char *cp;
 	if (get_arg(&i, '(') < 0) goto _break;
 	cp = special_char(arg_buffer);
+	/* TODO - verify 20+ bytes remaining in buffer */
 	while ((c = cp[k++])) out_buffer[j++] = c;
 	break;
 }
@@ -33,6 +34,7 @@ case '*': {
 	const char *cp;
 	if (get_arg(&i, 0) < 0) goto _break;
 	cp = special_string(arg_buffer);
+	/* TODO - verify 20+ bytes remaining in buffer */
 	while ((c = cp[k++])) out_buffer[j++] = c;
 	break;
 }
@@ -43,6 +45,7 @@ case '[': {
 	const char *cp;
 	if (get_arg(&i, '[') < 0) goto _break;
 	cp = special_char(arg_buffer);
+	/* TODO - verify 20+ bytes remaining in buffer */
 	while ((c = cp[k++])) out_buffer[j++] = c;
 	break;
 }
