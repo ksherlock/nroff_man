@@ -94,19 +94,34 @@ void man_init(void) {
 		tputs(cp, 0, tputs_helper);
 		tcap_buffer[tcap_buffer_offset++] = 0;
 	}
-	cp = tgetstr("so", &pcap);
+
+	cp = tgetstr("md", &pcap);
 	if (cp) {
 		bold_begin = tcap_buffer + tcap_buffer_offset;
 		tputs(cp, 0, tputs_helper);
 		tcap_buffer[tcap_buffer_offset++] = 0;
 	}
-	cp = tgetstr("se", &pcap);
+	cp = tgetstr("me", &pcap);
 	if (cp) {
 		bold_end = tcap_buffer + tcap_buffer_offset;
 		tputs(cp, 0, tputs_helper);
 		tcap_buffer[tcap_buffer_offset++] = 0;
 	}
 
+	if (!bold_begin) {
+		cp = tgetstr("so", &pcap);
+		if (cp) {
+			bold_begin = tcap_buffer + tcap_buffer_offset;
+			tputs(cp, 0, tputs_helper);
+			tcap_buffer[tcap_buffer_offset++] = 0;
+		}
+		cp = tgetstr("se", &pcap);
+		if (cp) {
+			bold_end = tcap_buffer + tcap_buffer_offset;
+			tputs(cp, 0, tputs_helper);
+			tcap_buffer[tcap_buffer_offset++] = 0;
+		}
+	}
 }
 
 static void set_font(unsigned new_font) {
