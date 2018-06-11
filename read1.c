@@ -39,6 +39,7 @@ static void parse_text(void);
 static void parse_args(unsigned);
 static unsigned analyze(unsigned *);
 extern const char *special_char(const char *);
+extern const char *special_string(const char *);
 
 static char arg_buffer[32];
 /* read an argument return -1 on error */

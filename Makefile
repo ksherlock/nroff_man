@@ -14,7 +14,7 @@ nroff_man: $(OBJS)
 read3.o : read3.c man.h
 read2.o : read1.c man.h
 read1.o : read1.c man.h escape.h
-chars.o : chars.c chars.h
+chars.o : chars.c chars.h strings.h
 
 .PHONY: clean
 

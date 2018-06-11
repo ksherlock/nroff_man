@@ -26,11 +26,16 @@ case '(': {
 	while ((c = cp[k++])) out_buffer[j++] = c;
 	break;
 }
-case '*':
+case '*': {
 	/* pre-defined strings.. */
 	/* \*X or \*(XX  \*[...] */
+	unsigned k = 0;
+	const char *cp;
 	if (get_arg(&i, 0) < 0) goto _break;
+	cp = special_string(arg_buffer);
+	while ((c = cp[k++])) out_buffer[j++] = c;
 	break;
+}
 
 case '[': {
 	/* [name] - not yet supported. */
