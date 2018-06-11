@@ -32,7 +32,7 @@ static int line;
 static int font;
 static int prev_font;
 
-static char buffer[512];
+static unsigned char buffer[512];
 static unsigned buffer_width;
 static unsigned buffer_words;
 static unsigned buffer_offset;
@@ -198,7 +198,7 @@ static void set_indent(int new_in, int new_ti) {
 	width = RM - lm;
 }
 
-static unsigned print(const char *cp, int fi) {
+static unsigned print(const unsigned char *cp, int fi) {
 	unsigned i;
 	unsigned char prev = 0;
 	unsigned length = 0;
@@ -308,7 +308,7 @@ static void flush(unsigned justify) {
 
 exit:
 	fputc('\n', stdout); ++line;
-exit2:
+
 	buffer_width = 0;
 	buffer_offset = 0;
 	buffer_words = 0;
@@ -317,7 +317,7 @@ exit2:
 
 }
 
-static unsigned is_sentence(const char *cp, unsigned offset) {
+static unsigned is_sentence(const unsigned char *cp, unsigned offset) {
 	char c;
 	if (offset == 0) return 0;
 	--offset;
@@ -374,13 +374,12 @@ static int hyphenate(const unsigned char *in, unsigned available, int *rv) {
 
 
 /* append buffer */
-static void append(const char *cp) {
+static void append(const unsigned char *cp) {
 
 	unsigned start, end;
 	unsigned i, j, k;
 	unsigned xlen;
 	unsigned char c;
-	unsigned hyphen = 0;
 
 	xlen = 0;
 	i = 0;
@@ -470,7 +469,7 @@ static void append(const char *cp) {
 	}
 }
 
-static int xstrlen(const char *cp) {
+static int xstrlen(const unsigned char *cp) {
 	int length = 0;
 	unsigned i;
 	for (i = 0; ; ++i) {
@@ -481,10 +480,9 @@ static int xstrlen(const char *cp) {
 }
 
 
-static void set_tag(const char *cp) {
+static void set_tag(const unsigned char *cp) {
 	/* set the tag for IP/TP */
 	int n;
-	int xline = line;
 
 	/* assumes buffer has been flushed */
 	/* set_indent(LM + IP, LM); */
@@ -495,7 +493,6 @@ static void set_tag(const char *cp) {
 		flush(0);
 	} else {
 		unsigned char c;
-		unsigned j = 0;
 		unsigned i;
 		for (i = 0; ; ++i) {
 			c = cp[i];
@@ -521,13 +518,13 @@ static char footer[80];
 static char *th_source = NULL;
 
 /* read an int, which is expected to be in the range 0-9. */
-static int get_int(const char *arg) {
+static int get_int(const unsigned char *arg) {
 	if (!arg || !arg[0]) return -1;
 	if (isdigit(arg[0]) && !arg[1]) return arg[0] - '0';
 	return -1;
 }
 
-static int get_unit(const char *arg, int dv) {
+static int get_unit(const unsigned char *arg, int dv) {
 	double d;
 	char sign = 0;
 	char c;
@@ -616,11 +613,11 @@ static void th(void) {
 	/* #{source} - #{date} - #{title}(#{section}) */
 	/* GNO man uses Page # right footer */
 
-	const char *title = NULL;
-	const char *section = NULL;
-	const char *date = NULL;
-	const char *source = NULL;
-	const char *volume = NULL;
+	const unsigned char *title = NULL;
+	const unsigned char *section = NULL;
+	const unsigned char *date = NULL;
+	const unsigned char *source = NULL;
+	const unsigned char *volume = NULL;
 
 	unsigned i, j, l;
 
@@ -761,7 +758,7 @@ void man(FILE *fp, const char *filename) {
 
 	for(;;) {
 		int x;
-		const char *cp = read_text();
+		const unsigned char *cp = read_text();
 		if (type == tkEOF) {
 			break;
 		}
@@ -935,12 +932,14 @@ void man(FILE *fp, const char *filename) {
 
 				na = 0;
 				ad = 'b';
+				hy = 1;
 				fi = 1;
 
 				LM = PP_INDENT;
 				IP = PP_INDENT;
 				if (type == tkSH && argc == 1 && !strcmp(argv[0], "SYNOPSIS")) {
 					na = 1;
+					hy = 0;
 				}
 				set_indent(PP_INDENT, type == tkSS ? SS_INDENT : SH_INDENT);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }

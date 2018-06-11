@@ -2,7 +2,7 @@
 
 extern int type;
 extern int argc;
-extern const char *argv[];
+extern const unsigned char *argv[];
 
 extern unsigned na;
 extern unsigned ad; /* .j */
@@ -84,8 +84,8 @@ enum {
 };
 
 
-const char *read_text(void);
-const char *read_line(void);
+const unsigned char *read_text(void);
+const unsigned char *read_line(void);
 
 void read_init(FILE *fp, const char *filename);
 void man(FILE *fp, const char *filename);

@@ -23,7 +23,7 @@ static struct chars string_table[] = {
  *	handles \(xx escape sequences for special characters
  */
 
-const char *special_char(const char *s) {
+const unsigned char *special_char(const unsigned char *s) {
 
 	unsigned begin = 0;
 	unsigned end = sizeof(char_table) / sizeof(char_table[0]);
@@ -51,7 +51,7 @@ const char *special_char(const char *s) {
 }
 
 
-const char *special_string(const char *s) {
+const unsigned char *special_string(const unsigned char *s) {
 
 	unsigned begin = 0;
 	unsigned end = sizeof(string_table) / sizeof(string_table[0]);

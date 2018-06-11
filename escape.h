@@ -38,7 +38,7 @@ case '*': {
 }
 
 case '[': {
-	/* [name] - not yet supported. */
+	/* [name] */
 	unsigned k = 0;
 	const char *cp;
 	if (get_arg(&i, '[') < 0) goto _break;
@@ -62,6 +62,7 @@ case 'f': {
 	}
 	break;
 }
+#if 0
 case 'F': case 'g': case 'k': case 'M': case 'm': 
 case 'n': case 'V': case 'Y':
 	if (get_arg(&i, 0) < 0) goto _break;
@@ -81,4 +82,5 @@ case 'w': case 'X': case 'x': case 'Z':
 		}
 		break;
 	}
+#endif
 default: out_buffer[j++] = c; break;

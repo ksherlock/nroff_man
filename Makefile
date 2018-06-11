@@ -1,5 +1,5 @@
 
-CFLAGS = -Wall -g -std=c89
+CFLAGS = -Wall  -Wno-pointer-sign -g -std=c89
 CPPFLAGS = -D_DEFAULT_SOURCE
 LDLIBS = -ltermcap
 OBJS = main.o read1.o read2.o read3.o chars.o

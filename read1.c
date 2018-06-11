@@ -9,13 +9,13 @@
 
 #define MAX_ARGC 9
 
-static char buffer[4096];
-static char out_buffer[4096];
+static unsigned char buffer[4096];
+static unsigned char out_buffer[4096];
 int type = tkTEXT;
 int argc = 0;
-const char *argv[MAX_ARGC+1];
-static char cc = '.';
-static char ec = '\\';
+const unsigned char *argv[MAX_ARGC+1];
+static unsigned char cc = '.';
+static unsigned char ec = '\\';
 
 
 /* registers */
@@ -38,10 +38,10 @@ static int so_index = -1;
 static void parse_text(void);
 static void parse_args(unsigned);
 static unsigned analyze(unsigned *);
-extern const char *special_char(const char *);
-extern const char *special_string(const char *);
+extern const char *special_char(const unsigned char *);
+extern const char *special_string(const unsigned char *);
 
-static char arg_buffer[32];
+static unsigned char arg_buffer[32];
 /* read an argument return -1 on error */
 /* 0 is length of empty [] argument... */
 int get_arg(unsigned *i_ptr, unsigned type) {
@@ -111,7 +111,7 @@ void read_init(FILE *fp, const char *name) {
 }
 
 
-const char *read_line(void) {
+const unsigned char *read_line(void) {
 
 
 	if (so_index < 0) { type = tkEOF; return NULL; }
@@ -126,8 +126,14 @@ const char *read_line(void) {
 
 
 		for(;;) {
+			/* TODO -- this needs to check if the buffer is full
+			   due to a long line.
+			   if offset +strlen(buffer+offset) == sizeof(buffer),
+			   it's probably too long.
+			 */
 			int bits;
-			char *cp = fgets(buffer + offset, sizeof(buffer) - offset, so_entries[so_index].fp);
+			char *cp = fgets(buffer + offset, sizeof(buffer) - offset, 
+				so_entries[so_index].fp);
 			if (cp == NULL) {
 				if (offset) break;
 
@@ -329,67 +335,58 @@ break;
 
 
 
-
-
 /*
- * 3 things...
+ * 5 things...
  * 1. strip comments
  * 2. kill incomplete escape sequences
  * 3. check for escape sequences
  * 4. check for a continuation sequence.
- * replace unsupported escapes w/ 0-width space?
+ * 5. strip unsupported escape sequences.
  */
 static unsigned analyze(unsigned *i_ptr) {
 	/*
 		& 0x01 -> escape sequence detected
 		& 0x02 -> continuation detected.
 		& 0x04 -> invalid escape sequence detected (and removed)
+		& 0x08 -> unsupported escape sequence removed.
 	*/
 	unsigned i = *i_ptr;
 	unsigned j;
-	unsigned escape = 0;
 	unsigned kill = 0;
 	unsigned char c;
+	unsigned rv = 0;
 
 	for (; ;) {
 		j = i;
 		c = buffer[i++];
-		if (c == 0) return escape;
-		if (c == '\r' || c == '\n') {
-			buffer[j] = 0;
-			*i_ptr = j;
-			return escape;
-		}
+		if (c == 0) return rv;
+		if (c == '\r' || c == '\n')  goto exit;
 		if (c == ' ' || c == '\t') continue;
-		if (c >= 0x80 || c < 0x20) { buffer[j] = ZWSPACE; escape = 1; continue; }
+		if (c >= 0x80 || c < 0x20) { buffer[j] = XSPACE; rv |= 0x08; continue; }
 		if (c != ec) continue;
 		c = buffer[i++];
 		switch(c) {
 			default:
-				escape = 1;
+				rv |= 0x01;
 				break;
 
 			case 0:
 			case '\r':
 			case '\n':
-				buffer[j] = 0;
-				*i_ptr = j;
-				return 0x02 | escape;
+				rv |= 0x02;
+				goto exit;
 				break;
 
 			case '"': /* comment */
-				buffer[j] = 0;
-				*i_ptr = j;
-				return escape;
+				goto exit;
 
 			case '*':
 				/* \*X, \*(XX, or \*[...] */
-				j = i-2;
 				c = buffer[i++];
 				if (c == 0) goto invalid;
 				if (c == '(') goto paren;
 				if (c == '[') goto bracket;
-				escape = 1;
+				rv |= 0x01;
 				break;
 
 			case '[':
@@ -399,17 +396,16 @@ static unsigned analyze(unsigned *i_ptr) {
 					if (c == 0) goto invalid;
 					if (c == ']') break;
 				}
-				escape = 1;
+				rv |= 0x01;
 				break;
 
 			case '(':
 			paren:
-				j = i-2;
 				c = buffer[i++];
 				if (c == 0) goto invalid;
 				c = buffer[i++];
 				if (c == 0) goto invalid;
-				escape = 1;
+				rv |= 0x01;
 				break;
 
 			case 'f':
@@ -418,16 +414,17 @@ static unsigned analyze(unsigned *i_ptr) {
 				if (c == 0) goto invalid;
 				if (c == '[') goto bracket;
 				if (c == '(') goto paren;
-				escape = 1;
+				rv |= 0x01;
 				break;
 
 			case 'F': case 'g': case 'k': case 'M': case 'm': 
 			case 'n': case 'V': case 'Y':
 				c = buffer[i++];
 				if (c == 0) goto invalid;
+				kill = 1;
 				if (c == '(') goto paren;
 				if (c == '[') goto bracket;
-				escape = 1;
+
 				break;
 
 			case 'A': case 'B': case 'b': case 'C': case 'D': 
@@ -441,20 +438,40 @@ static unsigned analyze(unsigned *i_ptr) {
 					if (c == 0) goto invalid;
 					if (c == '\'') break;
 				}
-				escape = 1;
+				rv |= 0x01;
+				kill = 1;
 				break;
 		}
 		if (kill) {
-			escape = 1;
-			while (j < i) buffer[j++] = ZWSPACE;
+			rv |= 0x08;
+			while (j < i) buffer[j++] = XSPACE;
+			kill = 0;
 		}
 	}
 
 invalid:
+	rv |= 0x04;
+
+exit:
 	buffer[j] = 0;
+
+	if (rv & 0x08) {
+		/* remove XSPACEs. */
+		i = j = *i_ptr;
+
+		for(;;++i) {
+			c = buffer[i];
+			if (c == 0) break;
+			if (c == XSPACE) continue;
+			buffer[j++] = c;
+		}
+		buffer[j] = 0;
+	}
 	*i_ptr = j;
-	return 0x04 | escape;
+
+	return rv;
 }
+
 
 void parse_args(unsigned i) {
 	unsigned j = 0;
@@ -479,8 +496,7 @@ void parse_args(unsigned i) {
 
 			c = buffer[i++];
 			if (c == 0) goto _break;
-			if (c == ZWSPACE) continue;
-			/* don't strip -- needed for .\~ etc, */
+			if (c == XSPACE) continue;
 			if (quote && c == '"') {
 				if (buffer[i] == '"') {
 					out_buffer[j++] = '"';
@@ -501,6 +517,7 @@ void parse_args(unsigned i) {
 
 			c = buffer[i++];
 			switch(c) {
+				/* TODO - escape.h should check for buffer overflow */
 				#include "escape.h"
 			}
 	
@@ -518,7 +535,7 @@ static void parse_text(void) {
 	unsigned j;
 	for (i = 0, j = 0;;) {
 		unsigned char c = buffer[i++];
-		if (c == ZWSPACE) continue;
+		if (c == XSPACE) continue;
 		if (c != ec) {
 			out_buffer[j++] = c;
 			if (c == 0) return;
@@ -527,6 +544,7 @@ static void parse_text(void) {
 
 		c = buffer[i++];
 		switch(c) {
+			/* TODO - escape.h should check for buffer overflow */
 			#include "escape.h"
 		}
 	}

@@ -3,15 +3,15 @@
 
 #include "man.h"
 
-static char buffer[4096];
+static unsigned char buffer[4096];
 
-static char *fonts(unsigned f1, unsigned f2) {
+static unsigned char *fonts(unsigned f1, unsigned f2) {
 	unsigned i,j,k;
 	unsigned char c;
 
 	type = tkTEXT;
 	for (i = 0, j = 0; i < argc; ++i) {
-		const char *cp = argv[i];
+		const unsigned char *cp = argv[i];
 		buffer[j++] = i & 0x01 ? f2 : f1;
 		k = 0;
 		while ((c = cp[k++])) buffer[j++] = c;
@@ -22,7 +22,7 @@ static char *fonts(unsigned f1, unsigned f2) {
 	return buffer;
 }
 
-static char *font(unsigned f) {
+static unsigned char *font(unsigned f) {
 	int i,j,k;
 	unsigned char c;
 
@@ -30,7 +30,7 @@ static char *font(unsigned f) {
 
 	type = tkTEXT;
 	for(i = 0, j = 1; i <argc; ++i) {
-		const char *cp = argv[i];
+		const unsigned char *cp = argv[i];
 		if (i > 0) buffer[j++] = ' ';
 		k = 0;
 		while ((c = cp[k++])) buffer[j++] = c;
@@ -40,17 +40,17 @@ static char *font(unsigned f) {
 	return buffer;
 }
 
-unsigned xstrcpy(char *dest, const char *src) {
+unsigned xstrcpy(unsigned char *dest, const unsigned char *src) {
 	unsigned i = 0;
 	while ((dest[i] = src[i])) ++i;
 	return i;
 }
 
-const char *read_text(void) {
+const unsigned char *read_text(void) {
 
 	unsigned ff = 0;
 	for(;;) {
-		const char *cp = read_line();
+		const unsigned char *cp = read_line();
 		if (type == tkEOF) return NULL;
 
 		switch(type) {
