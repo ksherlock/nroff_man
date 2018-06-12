@@ -11,6 +11,8 @@ extern unsigned hy;
 
 extern struct flags {
 	unsigned W;
+	unsigned i;
+	unsigned b;
 	const char *os;
 } flags;
 
