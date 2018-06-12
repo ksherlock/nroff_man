@@ -1,12 +1,13 @@
 
-#include <stdio.h>
+#include <assert.h>
 #include <ctype.h>
 #include <err.h>
+#include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <termcap.h>
-#include <errno.h>
-#include <assert.h>
+
 #include "man.h"
 
 /* inter-paragraph spacing */
@@ -427,7 +428,7 @@ static void append(const unsigned char *cp) {
 				}
 				
 				if (xlen > width) {
-					warnx("Word is too long.");
+					man_warnx("Word is too long.");
 					xlen = 0;
 					continue;
 				}
@@ -806,8 +807,9 @@ void man(FILE *fp, const char *filename) {
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				break;
 
-			case tkTP:
 			case tkTQ:
+				if (flags.W >= 3) man_warnx(".TQ is a non-standard GNU extension.");
+			case tkTP:
 				/* tagged paragraph */
 				/*
 					.TP [indent]
@@ -815,7 +817,7 @@ void man(FILE *fp, const char *filename) {
 					...
 
 					.TQ is a GNU extension; it is essentially .TP
-					without the PD padding.
+					without the PD padding... i think.
 				*/
 				trap = 0;
 				flush(0);
@@ -835,6 +837,7 @@ void man(FILE *fp, const char *filename) {
 					GNU extension
 					.SY xxx -> .HP width(xxx) \ \fBxxx\fR
 				*/
+				/* warned in read2.c */
 				trap = 0;
 				flush(0);
 				if (argc) {
@@ -904,7 +907,8 @@ void man(FILE *fp, const char *filename) {
 						LM = rs_stack[n];
 						rs_count = n;
 					} else {
-						warnx("Invalid RS count (%d / %d)", n + 1, rs_count);
+						/*warnx("Invalid RS count (%d / %d)", n + 1, rs_count);*/
+						man_warnx1s("Invalid RS count %s", argv[0]);
 					}
 
 				} else {

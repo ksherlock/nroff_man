@@ -4,13 +4,23 @@
 #include <string.h>
 #include <stdlib.h>
 #include <err.h>
+#include <errno.h>
 #include "man.h"
 
 
 #define MAX_ARGC 9
 
-static unsigned char buffer[4096];
-static unsigned char out_buffer[4096];
+/*
+ first half of the buffer is used for reading.
+ line is too long if it extends into the second half.
+ second half is used for expanding strings/characters, if necessary.
+*/
+
+#define BUFFER_SIZE 2048
+static unsigned char buffer[2048 * 2];
+#define out_buffer buffer
+
+
 int type = tkTEXT;
 int argc = 0;
 const unsigned char *argv[MAX_ARGC+1];
@@ -90,8 +100,6 @@ void read_init(FILE *fp, const char *name) {
 	int i;
 
 	type = fp ? tkTEXT : tkEOF;
-	buffer[0] = 0;
-	out_buffer[0] = 0;
 	argc = 0;
 	argv[0] = NULL;
 	cc = '.';
@@ -111,6 +119,47 @@ void read_init(FILE *fp, const char *name) {
 }
 
 
+void man_errc(int eval, int e, const char *msg) {
+	man_warnc(e, msg);
+	exit(eval);
+}
+
+void man_errc1s(int eval, int e, const char *msg, const char *s) {
+	man_warnc1s(e, msg, s);
+	exit(eval);
+}
+
+void man_warnc(int e, const char *msg) {
+	if (so_index >= 0) {
+		fprintf(stderr, "%s:%d: ",
+			so_entries[so_index].name,
+			so_entries[so_index].line);
+	}
+	fputs(msg, stderr);
+	if (e) {
+		fputs(": ", stderr);
+		fputs(strerror(e), stderr);
+	}
+	fputc('\n', stderr);
+}
+
+
+void man_warnc1s(int e, const char *msg, const char *s) {
+	if (so_index >= 0) {
+		fprintf(stderr, "%s:%d: ",
+			so_entries[so_index].name,
+			so_entries[so_index].line);
+	}
+	fprintf(stderr, msg, s);
+	if (e) {
+		fputs(": ", stderr);
+		fputs(strerror(e), stderr);
+	}
+	fputc('\n', stderr);
+}
+
+
+
 const unsigned char *read_line(void) {
 
 
@@ -126,7 +175,6 @@ const unsigned char *read_line(void) {
 
 
 		for(;;) {
-			unsigned l;
 			int bits;
 			char *cp;
 
@@ -144,13 +192,11 @@ const unsigned char *read_line(void) {
 			}
 			so_entries[so_index].line++;
 
-
 			/* potentially false positive but no line should be this long */
-			l = offset + strlen(buffer + offset);
-			if (l == sizeof(buffer)) {
-				errx(1, "line too long.");
-			}
 			bits = analyze(&offset);
+			if (offset > BUFFER_SIZE)
+				man_errx(1, "line too long.");
+
 			if (bits & 0x01) escape = 1;
 			if (bits & 0x02) continue; /*  /n - join next line. */
 			break;
@@ -261,12 +307,12 @@ break;
 			_1 ('Y', 'S', tkYS);
 			}
 			if (type == tkTEXT) {
-				warnx("invalid command: %s", buffer);
+				if (flags.W) man_warnx1s("invalid command: %s", buffer);
 				continue;
 			}
 			c = buffer[i++];
 			if (c != 0 && !isspace(c)) {
-				warnx("invalid command: %s", buffer);
+				if (flags.W) man_warnx1s("invalid command: %s", buffer);
 				continue;
 			}
 			switch(type) {
@@ -309,12 +355,12 @@ break;
 					if (cp[0]) {
 						FILE *fp;
 						if (so_index == MAX_SO-1) {
-							errx(1, "too many .so requests.");
+							man_errx(1, "too many .so requests.");
 							continue;
 						}
 						fp = fopen(cp, "r");
 						if (!fp) {
-							err(1, ".so %s", cp);
+							man_err1s(1, ".so %s", cp);
 							continue;
 						}
 						++so_index;
@@ -332,8 +378,8 @@ break;
 		type = tkTEXT;
 		if (!escape) return buffer;
 
-		parse_text(sizeof(buffer) - offset);
-		return out_buffer;
+		parse_text(BUFFER_SIZE - offset);
+		return buffer + BUFFER_SIZE;
 	}
 }
 
@@ -501,7 +547,7 @@ exit:
 
 
 void parse_args(unsigned i, int available) {
-	unsigned j = 0;
+	unsigned j = BUFFER_SIZE;
 	argc = 0;
 
 
@@ -560,7 +606,7 @@ _break:
 static void parse_text(int available) {
 	unsigned i;
 	unsigned j;
-	for (i = 0, j = 0;;) {
+	for (i = 0, j = BUFFER_SIZE;;) {
 		unsigned char c = buffer[i++];
 		if (c == XSPACE) continue;
 		if (c != ec) {

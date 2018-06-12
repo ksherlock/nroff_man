@@ -22,7 +22,7 @@ case '(': {
 	unsigned k = 0;
 	const char *cp;
 	if (get_arg(&i, '(') < 0) goto _break;
-	if (available < 20) errx(1,"Line too long.");
+	if (available < 20) man_errx(1,"Line too long.");
 	cp = special_char(arg_buffer);
 	while ((c = cp[k++])) out_buffer[j++] = c;
 	available -= k;
@@ -34,7 +34,7 @@ case '*': {
 	unsigned k = 0;
 	const char *cp;
 	if (get_arg(&i, 0) < 0) goto _break;
-	if (available < 20) errx(1,"Line too long.");
+	if (available < 20) man_errx(1,"Line too long.");
 	cp = special_string(arg_buffer);
 	while ((c = cp[k++])) out_buffer[j++] = c;
 	available -= k;
@@ -46,7 +46,7 @@ case '[': {
 	unsigned k = 0;
 	const char *cp;
 	if (get_arg(&i, '[') < 0) goto _break;
-	if (available < 20) errx(1,"Line too long.");
+	if (available < 20) man_errx(1,"Line too long.");
 	cp = special_char(arg_buffer);
 	while ((c = cp[k++])) out_buffer[j++] = c;
 	available -= k;

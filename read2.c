@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <err.h>
 
 #include "man.h"
 
@@ -55,10 +56,18 @@ const unsigned char *read_text(void) {
 
 		switch(type) {
 			case tkDT:
+				continue;
 			case tkUR:
+				if (flags.W >= 3) man_warnx(".UR is a non-standard GNU extension.");
+				continue;
 			case tkUE:
+				if (flags.W >= 3) man_warnx(".UE is a non-standard GNU extension.");
+				continue;
 			case tkMT:
+				if (flags.W >= 3) man_warnx(".MT is a non-standard GNU extension.");
+				continue;
 			case tkME:
+				if (flags.W >= 3) man_warnx(".ME is a non-standard GNU extension.");
 				continue;
 
 			/* next-line fonts */
@@ -77,6 +86,7 @@ const unsigned char *read_text(void) {
 				if (argc) return font(ff);
 				continue;
 			case tkSY:
+				if (flags.W >= 3) man_warnx(".SY is a non-standard GNU extension.");
 				/* bold up argv0 but retain the type */
 				if (argc) {
 					unsigned i;
@@ -99,22 +109,24 @@ const unsigned char *read_text(void) {
 
 			case tkOP: {
 				unsigned i;
+				if (flags.W >= 3) man_warnx(".OP is a non-standard GNU extension.");
+
 				if (argc == 0) continue;
-					buffer[0] = '[';
-					buffer[1] = FONT_B;
-					i = 2 + xstrcpy(buffer+2, argv[0]);
+				buffer[0] = '[';
+				buffer[1] = FONT_B;
+				i = 2 + xstrcpy(buffer+2, argv[0]);
+				buffer[i++] = FONT_R;
+				if (argc > 1) {
+					buffer[i++] = NBSPACE;
+					buffer[i++] = FONT_I;
+					i += xstrcpy(buffer + i, argv[1]);
 					buffer[i++] = FONT_R;
-					if (argc > 1) {
-						buffer[i++] = NBSPACE;
-						buffer[i++] = FONT_I;
-						i += xstrcpy(buffer + i, argv[1]);
-						buffer[i++] = FONT_R;
-					}
-					buffer[i++] = ']'; 
-					buffer[i] = 0; 
 				}
+				buffer[i++] = ']'; 
+				buffer[i] = 0; 
 				type = tkTEXT;
 				return buffer;
+			}
 
 			case tkTEXT:
 				if (ff) {
