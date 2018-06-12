@@ -14,7 +14,7 @@ case 'e': out_buffer[j++] = ec; break;
 case '"': goto _break; break; /* comment */
 case 't': out_buffer[j++] = '\t'; break;
 
-case '{': case '}': case 'd': case 'u': case 'p':
+case '{': case '}': case 'd': case 'u': case 'p': case 'a':
 case 'z':
 	break;
 
@@ -22,9 +22,10 @@ case '(': {
 	unsigned k = 0;
 	const char *cp;
 	if (get_arg(&i, '(') < 0) goto _break;
+	if (available < 20) errx(1,"Line too long.");
 	cp = special_char(arg_buffer);
-	/* TODO - verify 20+ bytes remaining in buffer */
 	while ((c = cp[k++])) out_buffer[j++] = c;
+	available -= k;
 	break;
 }
 case '*': {
@@ -33,9 +34,10 @@ case '*': {
 	unsigned k = 0;
 	const char *cp;
 	if (get_arg(&i, 0) < 0) goto _break;
+	if (available < 20) errx(1,"Line too long.");
 	cp = special_string(arg_buffer);
-	/* TODO - verify 20+ bytes remaining in buffer */
 	while ((c = cp[k++])) out_buffer[j++] = c;
+	available -= k;
 	break;
 }
 
@@ -44,12 +46,15 @@ case '[': {
 	unsigned k = 0;
 	const char *cp;
 	if (get_arg(&i, '[') < 0) goto _break;
+	if (available < 20) errx(1,"Line too long.");
 	cp = special_char(arg_buffer);
-	/* TODO - verify 20+ bytes remaining in buffer */
 	while ((c = cp[k++])) out_buffer[j++] = c;
+	available -= k;
 	break;
 }
 
+/* these are removed in the first pass */
+#if 0
 case 'f': {
 	/* \fC?[BIRP] */
 	/* \fC?[321] */
@@ -65,7 +70,7 @@ case 'f': {
 	}
 	break;
 }
-#if 0
+
 case 'F': case 'g': case 'k': case 'M': case 'm': 
 case 'n': case 'V': case 'Y':
 	if (get_arg(&i, 0) < 0) goto _break;

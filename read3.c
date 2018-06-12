@@ -128,6 +128,8 @@ void man_init(void) {
 	}
 }
 
+#define _(x) if (x) fputs(x, stdout); break
+
 static void set_font(unsigned new_font) {
 	if (new_font == FONT_P) new_font = prev_font;
 
@@ -135,32 +137,20 @@ static void set_font(unsigned new_font) {
 	if (font == new_font) return;
 	/* disable current font. */
 	switch(font) {
-		case FONT_B:
-			if (bold_end) fputs(bold_end, stdout);
-			break;
-		case FONT_I:
-			if (italic_end) fputs(italic_end, stdout);
-			break;
+		case FONT_B: _(bold_end);
+		case FONT_I: _(italic_end);
 	}
 	font = new_font;
 	switch(font) {
-		case FONT_B:
-			if (bold_begin) fputs(bold_begin, stdout);
-			break;
-		case FONT_I:
-				if (italic_begin) fputs(italic_begin, stdout);
-			break;
+		case FONT_B: _(bold_begin);
+		case FONT_I: _(italic_begin);
 	}
 }
 
 static void reset_font(void) {
 	switch(font) {
-		case FONT_B:
-			if (bold_end) fputs(bold_end, stdout);
-			break;
-		case FONT_I:
-			if (italic_end) fputs(italic_end, stdout);
-			break;
+		case FONT_B: _(bold_end);
+		case FONT_I: _(italic_end);
 	}
 	font = prev_font = FONT_R;
 }
@@ -181,7 +171,6 @@ static void indent(void) {
 
 	if (!amt) return;
 
-	#define _(x) if (x) fputs(x, stdout); break;
 	switch(font) {
 		case FONT_B: _(bold_end);
 		case FONT_I: _(italic_end);
@@ -191,8 +180,8 @@ static void indent(void) {
 		case FONT_B: _(bold_begin);
 		case FONT_I: _(italic_begin);
 	}
-	#undef _
 }
+#undef _
 
 static void set_indent(int new_in, int new_ti) {
 	int lm;

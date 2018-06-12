@@ -35,8 +35,8 @@ struct so_entry {
 } so_entries[MAX_SO];
 static int so_index = -1;
 
-static void parse_text(void);
-static void parse_args(unsigned);
+static void parse_text(int);
+static void parse_args(unsigned, int);
 static unsigned analyze(unsigned *);
 extern const char *special_char(const unsigned char *);
 extern const char *special_string(const unsigned char *);
@@ -126,13 +126,11 @@ const unsigned char *read_line(void) {
 
 
 		for(;;) {
-			/* TODO -- this needs to check if the buffer is full
-			   due to a long line.
-			   if offset +strlen(buffer+offset) == sizeof(buffer),
-			   it's probably too long.
-			 */
+			unsigned l;
 			int bits;
-			char *cp = fgets(buffer + offset, sizeof(buffer) - offset, 
+			char *cp;
+
+			cp = fgets(buffer + offset, sizeof(buffer) - offset, 
 				so_entries[so_index].fp);
 			if (cp == NULL) {
 				if (offset) break;
@@ -146,6 +144,12 @@ const unsigned char *read_line(void) {
 			}
 			so_entries[so_index].line++;
 
+
+			/* potentially false positive but no line should be this long */
+			l = offset + strlen(buffer + offset);
+			if (l == sizeof(buffer)) {
+				errx(1, "line too long.");
+			}
 			bits = analyze(&offset);
 			if (bits & 0x01) escape = 1;
 			if (bits & 0x02) continue; /*  /n - join next line. */
@@ -305,12 +309,12 @@ break;
 					if (cp[0]) {
 						FILE *fp;
 						if (so_index == MAX_SO-1) {
-							warnx("too many .so requests.");
+							errx(1, "too many .so requests.");
 							continue;
 						}
 						fp = fopen(cp, "r");
 						if (!fp) {
-							warn(".so %s", cp);
+							err(1, ".so %s", cp);
 							continue;
 						}
 						++so_index;
@@ -321,14 +325,14 @@ break;
 				}
 
 				default:
-					parse_args(i);
+					parse_args(i, sizeof(buffer) - offset);
 					return "";
 				}
 		}
 		type = tkTEXT;
 		if (!escape) return buffer;
 
-		parse_text();
+		parse_text(sizeof(buffer) - offset);
 		return out_buffer;
 	}
 }
@@ -342,13 +346,16 @@ break;
  * 3. check for escape sequences
  * 4. check for a continuation sequence.
  * 5. strip unsupported escape sequences.
+ * 
+ * N.B. - characters/strings aren't expanded, or
+ * anything that would interfere with macro argument parsing.
  */
 static unsigned analyze(unsigned *i_ptr) {
 	/*
 		& 0x01 -> escape sequence detected
 		& 0x02 -> continuation detected.
 		& 0x04 -> invalid escape sequence detected (and removed)
-		& 0x08 -> unsupported escape sequence removed.
+		& 0x08 -> unsupported escape sequence removed. (or font replacement)
 	*/
 	unsigned i = *i_ptr;
 	unsigned j;
@@ -408,6 +415,7 @@ static unsigned analyze(unsigned *i_ptr) {
 				rv |= 0x01;
 				break;
 
+#if 0
 			case 'f':
 				c = buffer[i++];
 				if (c == 'C') c = buffer[i++];
@@ -416,7 +424,26 @@ static unsigned analyze(unsigned *i_ptr) {
 				if (c == '(') goto paren;
 				rv |= 0x01;
 				break;
+#endif
 
+			case 'f':
+				/* \fC?[BIRP] */
+				/* \fC?[321] */
+				/* \f(BI */
+				c = buffer[i++];
+				if (c == 'C') c = buffer[i++];
+				if (get_arg(&i, c) < 0) goto invalid;
+				kill = 1;
+				switch(arg_buffer[0]) {
+					default:
+					case 'R': case '1': buffer[j++] = FONT_R; break;
+					case 'B': case '3': buffer[j++] = FONT_B; break;
+					case 'I': case '2': buffer[j++] = FONT_I; break;
+					case 'P': buffer[j++] = FONT_P; break;
+				}
+				break;
+
+			/* everything below are stripped. */
 			case 'F': case 'g': case 'k': case 'M': case 'm': 
 			case 'n': case 'V': case 'Y':
 				c = buffer[i++];
@@ -473,7 +500,7 @@ exit:
 }
 
 
-void parse_args(unsigned i) {
+void parse_args(unsigned i, int available) {
 	unsigned j = 0;
 	argc = 0;
 
@@ -530,7 +557,7 @@ _break:
 	argv[argc] = NULL;
 }
 
-static void parse_text(void) {
+static void parse_text(int available) {
 	unsigned i;
 	unsigned j;
 	for (i = 0, j = 0;;) {
