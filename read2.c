@@ -4,7 +4,25 @@
 
 #include "man.h"
 
-static unsigned char buffer[4096];
+/*
+ * how much buffer space do we need?
+ * scenario 1:
+ * .B
+ * text...
+ *
+ * text is at MAN_BUFFER_SIZE, including null, so 2 extra bytes required
+ * for font bytes.
+ *
+ * scenario 2:
+ * .BR arg0 ... arg9
+ *
+ * if 1 arg, MAN_BUFFER_SIZE + 2 font bytes
+ * if 9 args, MAN_BUFFER_SIZE - 9 null bytes + 18 font bytes + 1 null byte
+ *
+ * .B arg0 ... arg9
+ * MAN_BUFFER_SIZE - 9 null bytes + 8 spaces + 1 null bytes + 2 font bytes.
+ */
+static unsigned char buffer[MAN_BUFFER_SIZE + 20];
 
 static unsigned char *fonts(unsigned f1, unsigned f2) {
 	unsigned i,j,k;

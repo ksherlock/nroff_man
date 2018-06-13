@@ -86,6 +86,8 @@ enum {
 };
 
 
+#define MAN_BUFFER_SIZE 2048
+
 const unsigned char *read_text(void);
 const unsigned char *read_line(void);
 

@@ -16,8 +16,7 @@
  second half is used for expanding strings/characters, if necessary.
 */
 
-#define BUFFER_SIZE 2048
-static unsigned char buffer[2048 * 2];
+static unsigned char buffer[MAN_BUFFER_SIZE * 2];
 #define out_buffer buffer
 
 
@@ -194,7 +193,7 @@ const unsigned char *read_line(void) {
 
 			/* potentially false positive but no line should be this long */
 			bits = analyze(&offset);
-			if (offset > BUFFER_SIZE)
+			if (offset > MAN_BUFFER_SIZE)
 				man_errx(1, "line too long.");
 
 			if (bits & 0x01) escape = 1;
@@ -355,12 +354,12 @@ break;
 					if (cp[0]) {
 						FILE *fp;
 						if (so_index == MAX_SO-1) {
-							man_errx(1, "too many .so requests.");
+							man_warnx("too many .so requests.");
 							continue;
 						}
 						fp = fopen(cp, "r");
 						if (!fp) {
-							man_err1s(1, ".so %s", cp);
+							man_warn1s(".so %s", cp);
 							continue;
 						}
 						++so_index;
@@ -378,8 +377,8 @@ break;
 		type = tkTEXT;
 		if (!escape) return buffer;
 
-		parse_text(BUFFER_SIZE - offset);
-		return buffer + BUFFER_SIZE;
+		parse_text(MAN_BUFFER_SIZE - offset);
+		return buffer + MAN_BUFFER_SIZE;
 	}
 }
 
@@ -547,7 +546,7 @@ exit:
 
 
 void parse_args(unsigned i, int available) {
-	unsigned j = BUFFER_SIZE;
+	unsigned j = MAN_BUFFER_SIZE;
 	argc = 0;
 
 
@@ -606,7 +605,7 @@ _break:
 static void parse_text(int available) {
 	unsigned i;
 	unsigned j;
-	for (i = 0, j = BUFFER_SIZE;;) {
+	for (i = 0, j = MAN_BUFFER_SIZE;;) {
 		unsigned char c = buffer[i++];
 		if (c == XSPACE) continue;
 		if (c != ec) {
