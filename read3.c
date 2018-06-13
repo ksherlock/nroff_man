@@ -331,6 +331,7 @@ static unsigned is_sentence(const unsigned char *cp, unsigned offset) {
 
 static int hyphenate(const unsigned char *in, unsigned available, int *rv) {
 	/* check for hyphens in the text... */
+	/* todo: - hyphenate with - character, if word is [A-Za-z-]+ */
 	unsigned char c;
 	unsigned i;
 	int hpos = -1;
@@ -398,6 +399,8 @@ static void append(const unsigned char *cp) {
 				*/
 				/* flush() depends on buffer_offset, etc */
 				avail = width - buffer_width;
+
+				/* todo -- also check if k + end - start + 1 > sizeof(buffer) */
 
 				if (buffer_width + xlen > width) {
 
@@ -518,11 +521,12 @@ static int get_int(const unsigned char *arg) {
 	return -1;
 }
 
-static int get_unit(const unsigned char *arg, int dv) {
+static int get_unit(const unsigned char *arg, int dv, int base) {
 	double d;
 	char sign = 0;
 	char c;
 	char *cp = NULL;
+	int rv;
 	
 	if (!arg || !arg[0]) return dv;
 	c = arg[0];
@@ -565,7 +569,17 @@ static int get_unit(const unsigned char *arg, int dv) {
 		default:
 			break;
 	}
-	return (int)d;
+
+	rv = (int)d;
+	if (sign && base >= 0) {
+		if (sign == '+') base += rv;
+		else base -= rv;
+		if (base < 0) return 0;
+		return base;
+	}
+	if (sign == '-') rv = 0;
+
+	return rv;
 }
 
 static void at(void) {
@@ -782,7 +796,7 @@ void man(FILE *fp, const char *filename) {
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
 				if (argc >= 2) {
 					/* set IP width... */
-					IP = get_unit(argv[1], PP_INDENT);
+					IP = get_unit(argv[1], PP_INDENT, -1);
 				}
 
 				if (argc >= 1) {
@@ -801,7 +815,7 @@ void man(FILE *fp, const char *filename) {
 				reset_font();
 				if (argc >= 1) {
 					/* set IP width... */
-					IP = get_unit(argv[0], PP_INDENT);
+					IP = get_unit(argv[0], PP_INDENT, -1);
 				}
 				set_indent(LM + IP, LM);
 				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
@@ -824,7 +838,7 @@ void man(FILE *fp, const char *filename) {
 				reset_font();
 				if (argc >= 1) {
 					/* set IP width... */
-					IP = get_unit(argv[0], PP_INDENT);
+					IP = get_unit(argv[0], PP_INDENT, -1);
 				}
 				set_indent(LM + IP, LM);
 				if (type == tkTP)
@@ -864,7 +878,23 @@ void man(FILE *fp, const char *filename) {
 				break;
 
 			case tkin:
+				flush(0);
+				if (argc) {
+					int n = get_unit(argv[0], 0, in);
+					set_indent(n, ti);
+				}
 				break;
+
+#if 0
+			/* ti +5 -> ti in+5 */
+			case tkti:
+				flush(0);
+				if (argc) {
+					int n = get_unit(argv[0], 0, in);
+					set_indent(in, n);
+				}
+				break;
+#endif
 
 			case tkbr:
 				trap = 0;
@@ -874,7 +904,7 @@ void man(FILE *fp, const char *filename) {
 				int n;
 				trap = 0;
 				flush(0);
-				n = get_unit(argv[0], 1);
+				n = get_unit(argv[0], 1, -1);
 				while (--n >= 0 ) {
 					fputc('\n', stdout); ++line;
 				}
@@ -882,13 +912,13 @@ void man(FILE *fp, const char *filename) {
 			}
 
 			case tkPD:
-				PD = get_unit(argv[0], 1);
+				PD = get_unit(argv[0], 1, -1);
 				break;
 			case tkRS:
 				/* RS [width] */
 				flush(0);
 				rs_stack[rs_count++] = LM;
-				if (argc >= 1) IP = get_unit(argv[0], PP_INDENT);
+				if (argc >= 1) IP = get_unit(argv[0], PP_INDENT, -1);
 				LM += IP;
 				set_indent(LM, ti);
 				break;
