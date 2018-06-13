@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
 	int i;
 	int ch;
 
-	while (( ch = getopt(argc, argv, "hW:I:ib")) != -1) {
+	while (( ch = getopt(argc, argv, "m:hW:I:ib")) != -1) {
 		switch(ch) {
 			case '?': case ':':
 			default: usage(); exit(1);
@@ -37,7 +37,8 @@ int main(int argc, char **argv) {
 					flags.os = optarg + 3;
 				else
 					warnx("-I %s: Bad argument", optarg);
-
+				break;
+			case 'm': /* silently accept -man */
 				break;
 		}
 	}
