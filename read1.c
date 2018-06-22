@@ -32,6 +32,7 @@ unsigned ad = 'b'; /* .ad register */
 unsigned fi = 1; /* .fi/.nf register */
 unsigned na = 0;
 unsigned hy = 1;
+unsigned ns = 0; /* .ns / .rs */
 
 
 struct flags flags = { 0, 0 };
@@ -101,8 +102,15 @@ void read_init(FILE *fp, const char *name) {
 	type = fp ? tkTEXT : tkEOF;
 	argc = 0;
 	argv[0] = NULL;
+
 	cc = '.';
 	ec = '\\';
+
+	ad = 'b'; 
+	fi = 1;
+	na = 0;
+	hy = 1;
+	ns = 0;
 
 
 	for (i = 0; i <= so_index; ++i) free(so_entries[i].name);
@@ -286,7 +294,8 @@ break;
 			_1 ('f', 'i', tkfi);
 			_1 ('h', 'y', tkhy);
 			_2 ('i', 'n', tkin, 'f', tkxx);
-			_4 ('n', 'f', tknf, 'a', tkna, 'e', tkxx, 'h', tknh);
+			_5 ('n', 'f', tknf, 'a', tkna, 'e', tkxx, 'h', tknh, 's', tkns);
+			_1 ('r', 's', tkrs);
 			_2 ('s', 'o', tkso, 'p', tksp);
 			/* */
 			_1 ('A', 'T', tkAT);
@@ -343,6 +352,10 @@ break;
 					else hy = 1;
 					continue;
 				}
+
+				case tkrs: ns = 0; continue;
+				case tkns: ns = 1; continue;
+
 
 				case tkso: {
 					/* heirloom troff so supports quotes. */

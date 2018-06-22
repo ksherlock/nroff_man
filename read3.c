@@ -28,6 +28,9 @@ static int in;
 static int ti;
 /* non-format flag */
 
+extern unsigned ns;
+#define br_PD() if (PD && !ns) { line += PD; for(x = 0; x < PD; ++x) fputc('\n', stdout); }
+
 
 static int line;
 static int font;
@@ -783,7 +786,7 @@ void man(FILE *fp, const char *filename) {
 				flush(0);
 				reset_font();
 				set_indent(LM, -1);
-				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
+				br_PD();
 				break;
 
 
@@ -793,7 +796,7 @@ void man(FILE *fp, const char *filename) {
 				trap = 0;
 				flush(0);
 				reset_font();
-				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
+				br_PD();
 				if (argc >= 2) {
 					/* set IP width... */
 					IP = get_unit(argv[1], PP_INDENT, -1);
@@ -818,7 +821,7 @@ void man(FILE *fp, const char *filename) {
 					IP = get_unit(argv[0], PP_INDENT, -1);
 				}
 				set_indent(LM + IP, LM);
-				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
+				br_PD();
 				break;
 
 			case tkTQ:
@@ -841,8 +844,7 @@ void man(FILE *fp, const char *filename) {
 					IP = get_unit(argv[0], PP_INDENT, -1);
 				}
 				set_indent(LM + IP, LM);
-				if (type == tkTP)
-					for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
+				if (type == tkTP) { br_PD(); }
 				trap = tkTP;
 				break;
 
@@ -858,7 +860,7 @@ void man(FILE *fp, const char *filename) {
 					IP = xstrlen(argv[0]) + 1;					
 				}
 				set_indent(LM + IP, LM);
-				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
+				br_PD();
 				set_tag(argv[0]);
 				break;
 			case tkYS:
@@ -904,6 +906,7 @@ void man(FILE *fp, const char *filename) {
 				int n;
 				trap = 0;
 				flush(0);
+				if (ns) break;
 				n = get_unit(argv[0], 1, -1);
 				while (--n >= 0 ) {
 					fputc('\n', stdout); ++line;
@@ -969,7 +972,7 @@ void man(FILE *fp, const char *filename) {
 					hy = 0;
 				}
 				set_indent(PP_INDENT, type == tkSS ? SS_INDENT : SH_INDENT);
-				for (x = 0; x < PD; ++x) { fputc('\n', stdout); ++line; }
+				br_PD();
 				if (argc) {
 					int i;
 					for (i = 0; i < argc; ++i) append(argv[i]);

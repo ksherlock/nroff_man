@@ -82,6 +82,8 @@ enum {
 	tkna,
 	tknh,
 	tkhy,
+	tkns,
+	tkrs,
 	tkxx /* skipped */
 };
 
