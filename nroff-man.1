@@ -1,0 +1,66 @@
+.Dd $Mdocdate: June 25 2018 $
+.Dt NROFF-MAN 1
+.Os
+.Sh NAME
+.Nm nroff-man
+.Nd format manual pages
+.Sh SYNOPSIS
+.Nm
+.Op Fl bi
+.Op Fl I Cm os Ns = Ns Ar name
+.Op Fl W Ar level
+.Ar
+.Sh DESCRIPTION
+The
+.Nm
+utility formats manual pages for display.
+It supports
+.Xr nroff 1
+\-man macros as well a subset of
+.Xr nroff 1
+commands.
+.Pp
+The following options are available:
+.Bl -tag -width Ds
+.It Fl b
+Inhibit the bold font.
+.It Fl i
+Inhibit the italic font.
+.It Fl I Cm os Ns = Ns Ar name
+Provide the operating system name, if not provided by the
+.Cm \.TH , \.AT ,
+or
+.Cm \.UC
+macros.
+.It Fl W Ar level
+Set the warning level.
+Warning level 1 warns if unrecognized
+.Xr nroff 1
+commands are encountered.
+Warning level 3 warns if non-standard GNU \-man macros are encountered.
+.It Ar file
+Read from the given input file.
+If multiple files are specified, they are processed in the given order.
+If unspecified,
+.Nm
+reads from standard input.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr man 1 ,
+.Xr nroff 1 ,
+.Xr man 7
+.\" .Sh STANDARDS
+.\" .Sh HISTORY
+.Sh AUTHORS
+The
+.Nm
+utility was written by
+.An -nosplit
+.An Kelvin Sherlock Aq Mt ksherlock@gmail.com
+.\" .Sh CAVEATS
+.Sh BUGS
+Not all
+.Xr nroff 1
+commands are implmented, or implemented correctly.
