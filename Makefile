@@ -11,9 +11,10 @@ endif
 nroff_man: $(OBJS)
 	$(CC) $^ $(LDLIBS) -o $@
 
-read3.o : read3.c man.h
-read2.o : read1.c man.h
-read1.o : read1.c man.h escape.h
+main.c : man.h xtokens.h
+read3.o : read3.c man.h xtokens.h
+read2.o : read1.c man.h xtokens.h
+read1.o : read1.c man.h escape.h xtokens.h
 chars.o : chars.c man.chars.h man.strings.h
 
 .PHONY: clean

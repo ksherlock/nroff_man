@@ -1,5 +1,5 @@
 CC = occ --gno
-CFLAGS = -O79 -w-1 -v
+CFLAGS = -O-1 -w-1 # -D__STACK_CHECK__
 NOROOT = -r
 LDLIBS = -ltermcap.204
 OBJS = orca/main.a orca/read1.a orca/read2.a orca/read3.a orca/chars.a
@@ -8,16 +8,18 @@ OBJS = orca/main.a orca/read1.a orca/read2.a orca/read3.a orca/chars.a
 nroff.man: $(OBJS)
 	$(CC) $^ $(LDLIBS) -o $@
 
-orca/main.a : NOROOT=
-orca/read3.a : read3.c man.h
-orca/read2.a : read1.c man.h
-orca/read1.a : read1.c man.h escape.h
+orca/main.a : NOROOT =
+orca/main.a : CFLAGS += -s 1024
+orca/main.a : man.h xtokens.h
+orca/read3.a : read3.c man.h xtokens.h
+orca/read2.a : read1.c man.h xtokens.h
+orca/read1.a : read1.c man.h escape.h xtokens.h
 orca/chars.a : chars.c man.chars.h man.strings.h
 
 .PHONY: clean
 
 clean:
-	$(RM) $(OBJS)
+	$(RM) $(OBJS) nroff.man
 
 orca:
 	mkdir orca

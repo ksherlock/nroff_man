@@ -8,6 +8,12 @@
 #include "man.h"
 
 
+char *token_names[] = {
+#define _(x) #x ,
+#include "xtokens.h"
+#undef _
+};
+
 #define MAX_ARGC 9
 
 /*
@@ -303,7 +309,7 @@ break;
 			_1 ('D', 'T', tkDT);
 			_2 ('E', 'E', tkEE, 'X', tkEX);
 			_1 ('H', 'P', tkHP);
-			_3x('I', 'B', tkIB, 'P', tkIP, 'R', tkIR, tkI);
+			_4x('I', 'B', tkIB, 'P', tkIP, 'R', tkIR, 'X', tkIX, tkI);
 			_1 ('L', 'P', tkLP);
 			_2 ('M', 'E', tkME, 'T', tkMT);
 			_1 ('O', 'P', tkOP);
@@ -323,7 +329,18 @@ break;
 				if (flags.W) man_warnx1s("invalid command: %s", buffer);
 				continue;
 			}
+			if (flags.W >= 3) switch(type) {
+				case tkIX:
+					man_warnx1s("unsupported macro: .%s", token_names[type]);
+					break;
+				case tkUR: case tkUE: case tkMT: case tkME:
+				case tkOP: case tkSY: case tkYS: case tkTQ:
+					man_warnx1s("non-standard GNU macro: .%s", token_names[type]);
+					break;
+			}
 			switch(type) {
+				case tkUR: case tkUE: case tkMT: case tkME: case tkIX:
+					continue;
 				case tkxx: continue;
 				case tkcc:
 					/* quotes not supported. */

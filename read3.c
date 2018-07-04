@@ -825,7 +825,6 @@ void man(FILE *fp, const char *filename) {
 				break;
 
 			case tkTQ:
-				if (flags.W >= 3) man_warnx(".TQ is a non-standard GNU extension.");
 			case tkTP:
 				/* tagged paragraph */
 				/*
@@ -834,7 +833,7 @@ void man(FILE *fp, const char *filename) {
 					...
 
 					.TQ is a GNU extension; it is essentially .TP
-					without the PD padding... i think.
+					without the PD padding.
 				*/
 				trap = 0;
 				flush(0);
@@ -881,6 +880,7 @@ void man(FILE *fp, const char *filename) {
 
 			case tkin:
 				flush(0);
+				/* TODO - .in [no arg] restores the previous indent. */
 				if (argc) {
 					int n = get_unit(argv[0], 0, in);
 					set_indent(n, ti);

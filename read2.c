@@ -76,16 +76,10 @@ const unsigned char *read_text(void) {
 			case tkDT:
 				continue;
 			case tkUR:
-				if (flags.W >= 3) man_warnx(".UR is a non-standard GNU extension.");
-				continue;
 			case tkUE:
-				if (flags.W >= 3) man_warnx(".UE is a non-standard GNU extension.");
-				continue;
 			case tkMT:
-				if (flags.W >= 3) man_warnx(".MT is a non-standard GNU extension.");
-				continue;
 			case tkME:
-				if (flags.W >= 3) man_warnx(".ME is a non-standard GNU extension.");
+			case tkIX:
 				continue;
 
 			/* next-line fonts */
@@ -104,7 +98,6 @@ const unsigned char *read_text(void) {
 				if (argc) return font(ff);
 				continue;
 			case tkSY:
-				if (flags.W >= 3) man_warnx(".SY is a non-standard GNU extension.");
 				/* bold up argv0 but retain the type */
 				if (argc) {
 					unsigned i;
@@ -127,7 +120,6 @@ const unsigned char *read_text(void) {
 
 			case tkOP: {
 				unsigned i;
-				if (flags.W >= 3) man_warnx(".OP is a non-standard GNU extension.");
 
 				if (argc == 0) continue;
 				buffer[0] = '[';

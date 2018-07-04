@@ -29,63 +29,11 @@ enum {
 
 
 enum {
-	tkEOF,
-	tkTEXT,
-	/**/
-	tkAT,
-	tkB,
-	tkBI,
-	tkBR,
-	tkDT,
-	tkEE,
-	tkEX,
-	tkHP,
-	tkI,
-	tkIB,
-	tkIP,
-	tkIR,
-	tkLP,
-	tkME,
-	tkMT,
-	tkOP,
-	tkP,
-	tkPD,
-	tkPP,
-	tkR,
-	tkRB,
-	tkRE,
-	tkRI,
-	tkRS,
-	tkSB,
-	tkSH,
-	tkSM,
-	tkSS,
-	tkTH,
-	tkTP,
-	tkUC,
-	tkUE,
-	tkUR,
-	tkSY,
-	tkYS,
-	tkTQ,
-	/**/
-	tkbr,
-	tkfi,
-	tkin,
-	tknf,
-	tkso,
-	tksp,
-	tkcc,
-	tkec,
-	tkeo,
-	tkad,
-	tkna,
-	tknh,
-	tkhy,
-	tkns,
-	tkrs,
-	tkxx /* skipped */
+#define _(x) tk ## x ,
+#include "xtokens.h"
+#undef _
 };
+extern char *token_names[];
 
 
 #define MAN_BUFFER_SIZE 2048
