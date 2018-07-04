@@ -1,0 +1,5 @@
+.TP 12n
+\fBlnext\fR \fIc\fR
+Set the literal next character to
+\fIc\fR
+(default ^V).

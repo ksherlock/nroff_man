@@ -1,0 +1,24 @@
+.\" testing .in + .ti
+.ti 10
+.ti
+should not be indented.
+.br
+.ti 10
+should be indented.
+.br
+should not be indented.
+.in 4
+.ti +6
+indent 10.
+.br
+indent 4
+.br
+.sp 2
+.in 20
+.in 10
+indent 10
+.br
+.in
+indent 20
+.in
+indent 10
