@@ -35,6 +35,7 @@ extern unsigned ns;
 static int line;
 static int font;
 static int prev_font;
+static int prev_in;
 
 static unsigned char buffer[512];
 static unsigned buffer_width;
@@ -187,8 +188,22 @@ static void indent(void) {
 }
 #undef _
 
+static void set_ti(int new_ti) {
+	int lm;
+	ti = new_ti;
+	lm = new_ti < 0 ? in : new_ti;
+	width = RM - lm;
+}
+
+static void set_in(int new_in) {
+	prev_in = in;
+	in = new_in;
+	if (ti < 0) width = RM - new_in;
+}
+
 static void set_indent(int new_in, int new_ti) {
 	int lm;
+	prev_in = in;
 	in = new_in;
 	ti = new_ti;
 	lm = new_ti >= 0 ? new_ti : new_in;
@@ -527,12 +542,19 @@ static int get_int(const unsigned char *arg) {
 static int get_unit(const unsigned char *arg, int dv, int base) {
 	double d;
 	char sign = 0;
-	char c;
+	unsigned c;
 	char *cp = NULL;
 	int rv;
+	unsigned i;
 	
-	if (!arg || !arg[0]) return dv;
+	if (!arg) return dv;
+
+	i = 0;
+	while (arg[i] == ' ') ++i;
+	arg += i;
 	c = arg[0];
+	if (!c) return dv;
+
 	if (c == '+' || c == '-') {
 		sign = c;
 		++arg;
@@ -732,7 +754,7 @@ void man(FILE *fp, const char *filename) {
 	unsigned trap = 0;
 
 
-	in = 0;
+	in = prev_in = 0;
 	ti = -1;
 	PD = 1;
 	IP = PP_INDENT;
@@ -743,8 +765,7 @@ void man(FILE *fp, const char *filename) {
 	na = 0;
 	hy = 1;
 
-	font = FONT_R;
-	prev_font = FONT_R;
+	font = prev_font = FONT_R;
 	RM = 78;
 	LM = PP_INDENT;
 
@@ -882,21 +903,23 @@ void man(FILE *fp, const char *filename) {
 				flush(0);
 				/* TODO - .in [no arg] restores the previous indent. */
 				if (argc) {
-					int n = get_unit(argv[0], 0, in);
-					set_indent(n, ti);
+					int n = get_unit(argv[0], prev_in, in);
+					set_in(n);
+				} else {
+					set_in(prev_in);
 				}
 				break;
 
-#if 0
 			/* ti +5 -> ti in+5 */
 			case tkti:
 				flush(0);
 				if (argc) {
-					int n = get_unit(argv[0], 0, in);
-					set_indent(in, n);
+					int n = get_unit(argv[0], -1, in);
+					set_ti(n);
+				} else {
+					set_ti(-1);
 				}
 				break;
-#endif
 
 			case tkbr:
 				trap = 0;
@@ -923,7 +946,7 @@ void man(FILE *fp, const char *filename) {
 				rs_stack[rs_count++] = LM;
 				if (argc >= 1) IP = get_unit(argv[0], PP_INDENT, -1);
 				LM += IP;
-				set_indent(LM, ti);
+				set_in(LM);
 				break;
 			case tkRE:
 				/* RE [level] */
@@ -950,7 +973,7 @@ void man(FILE *fp, const char *filename) {
 					else LM = 0;
 				}
 
-				set_indent(LM, ti);
+				set_in(LM);
 				break;
 
 			case tkSH:

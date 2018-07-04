@@ -282,6 +282,15 @@ else if (c == y5) type = v5;\
 break;
 
 
+/*
+ * Not supported:
+ * .TS / .TE -> tbl
+ * .EQ / .EN -> eqn
+ * .PS / .PE -> pic
+ * .G1 / .G2 -> grap
+ * .[ / .] / .R1 / .R2 -> refer
+ * .vS / .vE -> vgrind
+ */
 
 			switch(c) {
 			/* tkxx skipped tokens:
@@ -303,6 +312,7 @@ break;
 			_5 ('n', 'f', tknf, 'a', tkna, 'e', tkxx, 'h', tknh, 's', tkns);
 			_1 ('r', 's', tkrs);
 			_2 ('s', 'o', tkso, 'p', tksp);
+			_1 ('t', 'i', tkti);
 			/* */
 			_1 ('A', 'T', tkAT);
 			_2x('B', 'I', tkBI, 'R', tkBR, tkB);
