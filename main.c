@@ -7,6 +7,9 @@
 
 #include "man.h"
 
+#ifdef __STACK_CHECK__
+#include <gno/gno.h>
+#endif
 
 static void usage(void) {
 	fputs(
@@ -14,10 +17,22 @@ static void usage(void) {
 		stdout);
 }
 
+#ifdef __STACK_CHECK__
+static void
+printStack (void) {
+    fprintf(stderr, "stack usage: %d bytes\n", _endStackCheck());
+}
+#endif
+
 int main(int argc, char **argv) {
 
 	int i;
 	int ch;
+
+#ifdef __STACK_CHECK__
+    _beginStackCheck();
+    atexit(printStack);
+#endif
 
 	while (( ch = getopt(argc, argv, "m:hW:I:ib")) != -1) {
 		switch(ch) {
