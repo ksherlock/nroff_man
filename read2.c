@@ -154,7 +154,4 @@ const unsigned char *read_text(void) {
 		}
 
 	}
-
-
-
 }

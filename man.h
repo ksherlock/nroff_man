@@ -24,7 +24,7 @@ enum {
 	FONT_B,
 	FONT_I,
 	FONT_P,
-	HYPHEN,
+	HYPHEN
 };
 
 
@@ -32,6 +32,7 @@ enum {
 #define _(x) tk ## x ,
 #include "xtokens.h"
 #undef _
+tkxx
 };
 extern char *token_names[];
 

@@ -12,6 +12,7 @@ char *token_names[] = {
 #define _(x) #x ,
 #include "xtokens.h"
 #undef _
+""
 };
 
 #define MAX_ARGC 9
