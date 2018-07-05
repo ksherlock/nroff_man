@@ -201,7 +201,7 @@ static void set_in(int new_in) {
 	if (ti < 0) width = RM - new_in;
 }
 
-static void set_indent(int new_in, int new_ti) {
+static void set_in_ti(int new_in, int new_ti) {
 	int lm;
 	prev_in = in;
 	in = new_in;
@@ -500,7 +500,7 @@ static void set_tag(const unsigned char *cp) {
 	int n;
 
 	/* assumes buffer has been flushed */
-	/* set_indent(LM + IP, LM); */
+	/* set_in_ti(LM + IP, LM); */
 
 	n = xstrlen(cp);
 	if (n >= width || n >= IP) { 
@@ -783,7 +783,7 @@ void man(FILE *fp, const char *filename) {
 	rs_count = 0;
 
 	/* indent isn't set until .SH, .SS, .PP, etc */
-	set_indent(0, -1);
+	set_in_ti(0, -1);
 
 	read_init(fp, filename);
 
@@ -806,7 +806,7 @@ void man(FILE *fp, const char *filename) {
 				trap = 0;
 				flush(0);
 				reset_font();
-				set_indent(LM, -1);
+				set_in_ti(LM, -1);
 				br_PD();
 				break;
 
@@ -824,10 +824,10 @@ void man(FILE *fp, const char *filename) {
 				}
 
 				if (argc >= 1) {
-					set_indent(LM + IP, LM);
+					set_in_ti(LM + IP, LM);
 					set_tag(argv[0]);
 				} else {
-					set_indent(LM + IP, -1);
+					set_in_ti(LM + IP, -1);
 				}
 				break;
 
@@ -841,7 +841,7 @@ void man(FILE *fp, const char *filename) {
 					/* set IP width... */
 					IP = get_unit(argv[0], PP_INDENT, -1);
 				}
-				set_indent(LM + IP, LM);
+				set_in_ti(LM + IP, LM);
 				br_PD();
 				break;
 
@@ -863,7 +863,7 @@ void man(FILE *fp, const char *filename) {
 					/* set IP width... */
 					IP = get_unit(argv[0], PP_INDENT, -1);
 				}
-				set_indent(LM + IP, LM);
+				set_in_ti(LM + IP, LM);
 				if (type == tkTP) { br_PD(); }
 				trap = tkTP;
 				break;
@@ -879,7 +879,7 @@ void man(FILE *fp, const char *filename) {
 				if (argc) {
 					IP = xstrlen(argv[0]) + 1;					
 				}
-				set_indent(LM + IP, LM);
+				set_in_ti(LM + IP, LM);
 				br_PD();
 				set_tag(argv[0]);
 				break;
@@ -994,7 +994,7 @@ void man(FILE *fp, const char *filename) {
 					na = 1;
 					hy = 0;
 				}
-				set_indent(PP_INDENT, type == tkSS ? SS_INDENT : SH_INDENT);
+				set_in_ti(PP_INDENT, type == tkSS ? SS_INDENT : SH_INDENT);
 				br_PD();
 				if (argc) {
 					int i;
@@ -1024,7 +1024,7 @@ void man(FILE *fp, const char *filename) {
 					case tkSH:
 						flush(0);
 						/* reset_font(); */
-						/* set_indent(PP_INDENT, -1); */
+						/* set_in_ti(PP_INDENT, -1); */
 						break;
 				}
 				trap = 0;
