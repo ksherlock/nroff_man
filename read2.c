@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <err.h>
+#include <stdint.h>
 
 #include "man.h"
 
@@ -26,7 +27,7 @@ static unsigned char buffer[MAN_BUFFER_SIZE + 20];
 
 static unsigned char *fonts(unsigned f1, unsigned f2) {
 	unsigned i,j,k;
-	unsigned char c;
+	uint_fast8_t c;
 
 	type = tkTEXT;
 	for (i = 0, j = 0; i < argc; ++i) {
@@ -43,7 +44,7 @@ static unsigned char *fonts(unsigned f1, unsigned f2) {
 
 static unsigned char *font(unsigned f) {
 	int i,j,k;
-	unsigned char c;
+	uint_fast8_t c;
 
 	buffer[0] = f;
 

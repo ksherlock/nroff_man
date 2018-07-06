@@ -2,7 +2,7 @@ CC = occ --gno
 CFLAGS = -O-1 -w-1 # -D__STACK_CHECK__
 NOROOT = -r
 LDLIBS = -ltermcap.204
-OBJS = orca/main.a orca/read1.a orca/read2.a orca/read3.a orca/chars.a
+OBJS = orca/main.a orca/read1.a orca/read2.a orca/read3.a orca/chars.a orca/render.a
 
 
 nroff.man: $(OBJS)
@@ -15,6 +15,7 @@ orca/read3.a : read3.c man.h xtokens.h
 orca/read2.a : read1.c man.h xtokens.h
 orca/read1.a : read1.c man.h escape.h xtokens.h
 orca/chars.a : chars.c man.chars.h man.strings.h
+orca/render.a : render.c man.h xtokens.h
 
 .PHONY: clean
 

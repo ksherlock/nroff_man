@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <err.h>
 #include <errno.h>
+#include <stdint.h>
+
 #include "man.h"
 
 
@@ -30,8 +32,8 @@ static unsigned char buffer[MAN_BUFFER_SIZE * 2];
 int type = tkTEXT;
 int argc = 0;
 const unsigned char *argv[MAX_ARGC+1];
-static unsigned char cc = '.';
-static unsigned char ec = '\\';
+static uint_fast8_t cc = '.';
+static uint_fast8_t ec = '\\';
 
 
 /* registers */
@@ -40,7 +42,16 @@ unsigned fi = 1; /* .fi/.nf register */
 unsigned na = 0;
 unsigned hy = 1;
 unsigned ns = 0; /* .ns / .rs */
+unsigned ft = FONT_R;
+unsigned prev_ft = FONT_R;
+int ti = -1;
+unsigned in = 0;
+unsigned prev_in = 0;
+unsigned ll = 78;
+unsigned prev_ll = 78;
 
+unsigned width = 78;
+unsigned line = 1;
 
 struct flags flags = { 0, 0 };
 
@@ -63,7 +74,7 @@ static unsigned char arg_buffer[32];
 /* 0 is length of empty [] argument... */
 int get_arg(unsigned *i_ptr, unsigned type) {
 	unsigned i = *i_ptr;
-	unsigned char c = type;
+	uint_fast8_t c = type;
 
 	if (type == 0) c = type = buffer[i++];
 	arg_buffer[0] = 0;
@@ -103,6 +114,7 @@ int get_arg(unsigned *i_ptr, unsigned type) {
 
 
 
+extern void render_init(void);
 void read_init(FILE *fp, const char *name) {
 	int i;
 
@@ -118,6 +130,15 @@ void read_init(FILE *fp, const char *name) {
 	na = 0;
 	hy = 1;
 	ns = 0;
+
+	ti = -1;
+	in = prev_in = 0;
+	ll = prev_ll = 78;
+	ft = prev_ft = FONT_R;
+	width = 78;
+	line = 1;
+
+	render_init();
 
 
 	for (i = 0; i <= so_index; ++i) free(so_entries[i].name);
@@ -173,6 +194,12 @@ void man_warnc1s(int e, const char *msg, const char *s) {
 }
 
 
+extern int get_unit(const unsigned char *arg, int dv, int base);
+extern void set_ll(int);
+extern void set_ti(int);
+extern void set_in(int);
+extern void flush(unsigned justify);
+extern void append_font(unsigned);
 
 const unsigned char *read_line(void) {
 
@@ -217,7 +244,7 @@ const unsigned char *read_line(void) {
 		}
 		if (buffer[0] == cc) {
 			unsigned i = 1;
-			unsigned char c;
+			uint_fast8_t c;
 			while (isspace(buffer[i])) ++i;
 			c = buffer[i++];
 			if (c == 0) continue;
@@ -307,9 +334,10 @@ break;
 			_1 ('b', 'r', tkbr);
 			_1 ('c', 'c', tkcc);
 			_2 ('e', 'c', tkec, 'o', tkeo);
-			_1 ('f', 'i', tkfi);
+			_2 ('f', 'i', tkfi, 't', tkft);
 			_1 ('h', 'y', tkhy);
 			_2 ('i', 'n', tkin, 'f', tkxx);
+			_1 ('l', 'l', tkll);
 			_5 ('n', 'f', tknf, 'a', tkna, 'e', tkxx, 'h', tknh, 's', tkns);
 			_1 ('r', 's', tkrs);
 			_2 ('s', 'o', tkso, 'p', tksp);
@@ -384,6 +412,24 @@ break;
 				case tkrs: ns = 0; continue;
 				case tkns: ns = 1; continue;
 
+				case tknf: fi = 0; continue;
+				case tkfi: fi = 1; continue;
+
+				case tkbr:
+					flush(0);
+					continue;
+				case tksp: {
+					int n;
+					flush(0);
+					if (ns) break;
+					n = get_unit(buffer + i, 1, -1);
+					while (--n >= 0 ) {
+						fputc('\n', stdout); ++line;
+					}
+					continue;
+				}
+
+
 
 				case tkso: {
 					/* heirloom troff so supports quotes. */
@@ -407,6 +453,54 @@ break;
 						so_entries[so_index].fp = fp;
 						so_entries[so_index].name = strdup(cp);
 					}
+					continue;
+				}
+
+				case tkll: {
+					/* .ll +N */
+					/* default is previous .ll */
+					int n;
+					flush(0);
+					n = get_unit(buffer + i, prev_ll, ll);
+					set_ll(n);
+					continue;
+				}
+
+				case tkin: {
+					/* .in +N */
+					/* default is previous .in */
+					int n;
+					flush(0);
+					n = get_unit(buffer + i, prev_in, in);
+					set_in(n);
+					continue;
+				}
+
+				case tkti: {
+					/* .ti +N */
+					/* relative to in */
+					int n;
+					flush(0);
+					n = get_unit(buffer + i, -1, in);
+					set_ti(n);
+					continue;
+				}
+
+				case tkft: {
+					/* .ft [BRIP123] */
+					/* default = previous */
+					uint_fast8_t c;
+					unsigned ff;
+					while (isspace(buffer[i])) ++i;
+					c = buffer[i];
+					switch(c) {
+						default:
+						case 'P': ff = FONT_P; break;
+						case 'R': case '1': ff = FONT_R; break;
+						case 'B': case '3': ff = FONT_B; break;
+						case 'I': case '2': ff = FONT_I; break;
+					}
+					append_font(ff);
 					continue;
 				}
 
@@ -446,7 +540,7 @@ static unsigned analyze(unsigned *i_ptr) {
 	unsigned i = *i_ptr;
 	unsigned j;
 	unsigned kill = 0;
-	unsigned char c;
+	uint_fast8_t c;
 	unsigned rv = 0;
 
 	for (; ;) {
@@ -592,7 +686,7 @@ void parse_args(unsigned i, int available) {
 
 
 	for(;;) {
-		unsigned char c;
+		uint_fast8_t c;
 		unsigned quote = 0;
 		while (isspace(buffer[i])) ++i;
 
@@ -647,7 +741,7 @@ static void parse_text(int available) {
 	unsigned i;
 	unsigned j;
 	for (i = 0, j = MAN_BUFFER_SIZE;;) {
-		unsigned char c = buffer[i++];
+		uint_fast8_t c = buffer[i++];
 		if (c == XSPACE) continue;
 		if (c != ec) {
 			out_buffer[j++] = c;

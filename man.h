@@ -8,6 +8,11 @@ extern unsigned na;
 extern unsigned ad; /* .j */
 extern unsigned fi; /* .u */
 extern unsigned hy;
+extern unsigned in;
+extern int ti;
+extern unsigned ft;
+extern unsigned ll;
+extern unsigned ns;
 
 extern struct flags {
 	unsigned W;
@@ -24,6 +29,7 @@ enum {
 	FONT_B,
 	FONT_I,
 	FONT_P,
+	FONT_X,
 	HYPHEN
 };
 
