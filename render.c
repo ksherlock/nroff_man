@@ -453,7 +453,10 @@ void flush(unsigned justify) {
 				if (justify) {
 					int j;
 					int fudge;
-					/* taken from rosenkrantz nroff. */
+					/* taken from rosenkrantz nroff
+					 * which was taken from Software Tools
+					 * which was taken from Doug McIlroy's BCPL roff.
+					 */
 					if (buffer_flip_flop) 
 						fudge = padding / holes;
 					else
