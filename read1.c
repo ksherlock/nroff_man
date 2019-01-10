@@ -33,6 +33,7 @@ int type = tkTEXT;
 int argc = 0;
 const unsigned char *argv[MAX_ARGC+1];
 static uint_fast8_t cc = '.';
+static uint_fast8_t c2 = '\'';
 static uint_fast8_t ec = '\\';
 
 
@@ -123,6 +124,7 @@ void read_init(FILE *fp, const char *name) {
 	argv[0] = NULL;
 
 	cc = '.';
+	c2 = '\'';
 	ec = '\\';
 
 	ad = 'b'; 
@@ -177,7 +179,6 @@ void man_warnc(int e, const char *msg) {
 	}
 	fputc('\n', stderr);
 }
-
 
 void man_warnc1s(int e, const char *msg, const char *s) {
 	if (so_index >= 0) {
@@ -242,7 +243,7 @@ const unsigned char *read_line(void) {
 			if (bits & 0x02) continue; /*  /n - join next line. */
 			break;
 		}
-		if (buffer[0] == cc) {
+		if (buffer[0] == cc || buffer[0] == c2) {
 			unsigned i = 1;
 			uint_fast8_t c;
 			while (isspace(buffer[i])) ++i;
@@ -332,7 +333,7 @@ break;
 			*/
 			_1 ('a', 'd', tkad);
 			_1 ('b', 'r', tkbr);
-			_1 ('c', 'c', tkcc);
+			_2 ('c', 'c', tkcc, '2', tkc2);
 			_2 ('e', 'c', tkec, 'o', tkeo);
 			_2 ('f', 'i', tkfi, 't', tkft);
 			_1 ('h', 'y', tkhy);
@@ -385,6 +386,11 @@ break;
 					/* quotes not supported. */
 					while (isspace(c = buffer[i])) ++i;
 					cc = c == 0 ? '.' : c;
+					continue;
+				case tkc2:
+					/* quotes not supported. */
+					while (isspace(c = buffer[i])) ++i;
+					c2 = c == 0 ? '\'' : c;
 					continue;
 				case tkeo: ec = 0; continue;
 				case tkec:
