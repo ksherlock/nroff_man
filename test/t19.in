@@ -1,0 +1,13 @@
+.\" 
+.\" .IR, etc do not add spacing between words
+.\" 
+.\" .I, .B, etc DO add spacing between words.
+
+.P
+.IR This is a smushed.
+.P
+.BR This is smushed.
+.P
+.I This is not smushed.
+.P
+.B This is not smushed.

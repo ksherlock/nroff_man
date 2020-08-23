@@ -1,0 +1,13 @@
+.ft B
+this is bold.
+.ft
+this is not.
+.ft I
+this is italic?
+.ft B
+this is bold
+.ft
+but this is italic.
+.ft R
+and this is roman.
+

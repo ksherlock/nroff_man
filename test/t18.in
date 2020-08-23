@@ -1,0 +1,17 @@
+.\" 
+.\" .MR testing.
+.\" 
+
+.P
+
+.MR abc (1) ,
+.MR def (2) ,
+.MR xyz (2)
+
+.P
+
+.IR abc (1),
+.IR def (2),
+.IR xyz (2)
+
+.P
