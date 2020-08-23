@@ -351,7 +351,7 @@ break;
 			_1 ('H', 'P', tkHP);
 			_4x('I', 'B', tkIB, 'P', tkIP, 'R', tkIR, 'X', tkIX, tkI);
 			_1 ('L', 'P', tkLP);
-			_2 ('M', 'E', tkME, 'T', tkMT);
+			_3 ('M', 'E', tkME, 'R', tkMR, 'T', tkMT);
 			_1 ('O', 'P', tkOP);
 			_2x('P', 'D', tkPD, 'P', tkPP, tkP);
 			_4x('R', 'B', tkRB, 'E', tkRE, 'I', tkRI, 'S', tkRS, tkR);

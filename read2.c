@@ -60,6 +60,26 @@ static unsigned char *font(unsigned f) {
 	return buffer;
 }
 
+static unsigned char *font_first_word(unsigned f) {
+	int i,j,k;
+	uint_fast8_t c;
+
+	if (!argc) return buffer;
+
+	buffer[0] = f;
+
+	type = tkTEXT;
+	for(i = 0, j = 1; i <argc; ++i) {
+		const unsigned char *cp = argv[i];
+		k = 0;
+		while ((c = cp[k++])) buffer[j++] = c;
+		if (i == 0) buffer[j++] = FONT_R;
+	}
+	buffer[j++] = 0;
+	return buffer;
+}
+
+
 unsigned xstrcpy(unsigned char *dest, const unsigned char *src) {
 	unsigned i = 0;
 	while ((dest[i] = src[i])) ++i;
@@ -118,6 +138,9 @@ const unsigned char *read_text(void) {
 			case tkIR: return fonts(FONT_I, FONT_R);
 			case tkRI: return fonts(FONT_R, FONT_I);
 			case tkRB: return fonts(FONT_R, FONT_B);
+
+			/* plan-9 Manual Reference.  First word is italic */
+			case tkMR: return font_first_word(FONT_I);
 
 			case tkOP: {
 				unsigned i;
