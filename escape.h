@@ -12,6 +12,7 @@ case ' ': case '0':
 
 case 'e': out_buffer[j++] = ec; break;
 case '"': goto _break; break; /* comment */
+case '#': goto _break; break; /* groff comment */
 case 't': out_buffer[j++] = '\t'; break;
 
 case '{': case '}': case 'd': case 'u': case 'p': case 'a':

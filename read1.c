@@ -571,6 +571,7 @@ static unsigned analyze(unsigned *i_ptr) {
 				break;
 
 			case '"': /* comment */
+			case '#': /* groff comment */
 				goto exit;
 
 			case '*':
