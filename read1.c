@@ -54,6 +54,8 @@ unsigned prev_ll = 78;
 unsigned width = 78;
 unsigned line = 1;
 
+unsigned ignore = 0;
+
 struct flags flags = { 0, 0 };
 
 #define MAX_SO 4
@@ -139,6 +141,7 @@ void read_init(FILE *fp, const char *name) {
 	ft = prev_ft = FONT_R;
 	width = 78;
 	line = 1;
+	ignore = 0;
 
 	render_init();
 
@@ -225,6 +228,11 @@ const unsigned char *read_line(void) {
 			if (cp == NULL) {
 				if (offset) break;
 
+
+				if (ignore && flags.W >= 1) {
+					man_warnx("end of input while ignoring lines");
+				}
+
 				free(so_entries[so_index].name);
 				if (so_index) fclose(so_entries[so_index].fp);
 				--so_index;
@@ -233,6 +241,12 @@ const unsigned char *read_line(void) {
 				return NULL;
 			}
 			so_entries[so_index].line++;
+
+			if (ignore) {
+				if (buffer[0] == cc && buffer[1] == '.')
+					ignore = 0;
+				continue;
+			}
 
 			/* potentially false positive but no line should be this long */
 			bits = analyze(&offset);
@@ -337,7 +351,7 @@ break;
 			_2 ('e', 'c', tkec, 'o', tkeo);
 			_2 ('f', 'i', tkfi, 't', tkft);
 			_1 ('h', 'y', tkhy);
-			_2 ('i', 'n', tkin, 'f', tkxx);
+			_3 ('i', 'n', tkin, 'f', tkxx, 'g', tkig);
 			_1 ('l', 'l', tkll);
 			_5 ('n', 'f', tknf, 'a', tkna, 'e', tkxx, 'h', tknh, 's', tkns);
 			_1 ('r', 's', tkrs);
@@ -509,6 +523,12 @@ break;
 					append_font(ff);
 					continue;
 				}
+
+				case tkig:
+					/* ig [end] */
+					/* todo -- support end argument */
+					ignore = 1;
+					continue;
 
 				default:
 					parse_args(i, sizeof(buffer) - offset);
