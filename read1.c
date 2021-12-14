@@ -571,7 +571,12 @@ static unsigned analyze(unsigned *i_ptr) {
 				break;
 
 			case '"': /* comment */
+				goto exit;
 			case '#': /* groff comment */
+				if (flags.W >= 3) {
+					man_warnx("non-standard GNU # comment");					
+				}
+				rv |= 0x02;
 				goto exit;
 
 			case '*':

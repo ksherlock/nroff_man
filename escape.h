@@ -11,6 +11,7 @@ case ' ': case '0':
 	out_buffer[j++] = NBSPACE; break; /* non-paddable */
 
 case 'e': out_buffer[j++] = ec; break;
+/* n.b. comments are already handled by analyze */
 case '"': goto _break; break; /* comment */
 case '#': goto _break; break; /* groff comment */
 case 't': out_buffer[j++] = '\t'; break;
