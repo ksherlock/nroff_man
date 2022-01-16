@@ -84,17 +84,34 @@ void man_init(void) {
 
 	pcap = buffer2;
 	if (!flags.i) {
-		cp = tgetstr("us", &pcap);
+		/* ZH/ZR are italic begin/end.  Not usually supported. */
+
+		cp = tgetstr("ZH", &pcap);
 		if (cp) {
 			italic_begin = tcap_buffer + tcap_buffer_offset;
 			tputs(cp, 0, tputs_helper);
 			tcap_buffer[tcap_buffer_offset++] = 0;
 		}
-		cp = tgetstr("ue", &pcap);
+		cp = tgetstr("ZR", &pcap);
 		if (cp) {
 			italic_end = tcap_buffer + tcap_buffer_offset;
 			tputs(cp, 0, tputs_helper);
 			tcap_buffer[tcap_buffer_offset++] = 0;
+		}
+
+		if (!italic_begin) {
+			cp = tgetstr("us", &pcap);
+			if (cp) {
+				italic_begin = tcap_buffer + tcap_buffer_offset;
+				tputs(cp, 0, tputs_helper);
+				tcap_buffer[tcap_buffer_offset++] = 0;
+			}
+			cp = tgetstr("ue", &pcap);
+			if (cp) {
+				italic_end = tcap_buffer + tcap_buffer_offset;
+				tputs(cp, 0, tputs_helper);
+				tcap_buffer[tcap_buffer_offset++] = 0;
+			}
 		}
 	}
 
