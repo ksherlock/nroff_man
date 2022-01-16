@@ -201,6 +201,7 @@ int get_unit(const unsigned char *arg, int dv, int base) {
 		case 'n':
 		case 'u':
 		case 'v':
+			break;
 		default:
 			break;
 	}

@@ -9,7 +9,7 @@ ifeq ($(MSYSTEM),MSYS)
 endif
 
 nroff_man: $(OBJS)
-	$(CC) $^ $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 main.c : man.h xtokens.h
 read3.o : read3.c man.h xtokens.h

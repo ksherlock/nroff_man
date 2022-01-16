@@ -390,6 +390,8 @@ break;
 				case tkUR: case tkUE: case tkMT: case tkME:
 				case tkOP: case tkSY: case tkYS: case tkTQ:
 					man_warnx1s("non-standard GNU macro: .%s", token_names[type]);
+				case tkMR:
+					man_warnx1s("non-standard Plan 9 macro: .%s", token_names[type]);
 					break;
 			}
 			switch(type) {

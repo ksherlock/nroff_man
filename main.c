@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
 				if (isdigit(*optarg))
 					flags.W = *optarg - '0';
 				else
-					warnx("-I %s: Bad argument", optarg);
+					warnx("-W %s: Bad argument", optarg);
 				break;
 			case 'I':
 				if (strncmp(optarg, "os=", 3) == 0)
