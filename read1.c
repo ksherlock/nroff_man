@@ -260,6 +260,8 @@ const unsigned char *read_line(void) {
 		if (buffer[0] == cc || buffer[0] == c2) {
 			unsigned i = 1;
 			uint_fast8_t c;
+			char *cp;
+
 			while (isspace(buffer[i])) ++i;
 			c = buffer[i++];
 			if (c == 0) continue;
@@ -345,7 +347,7 @@ break;
 				.ec - escape char (\)
 				.eo - escape char off.
 			*/
-			_1 ('a', 'd', tkad);
+			_2 ('a', 'b', tkab, 'd', tkad);
 			_1 ('b', 'r', tkbr);
 			_2 ('c', 'c', tkcc, '2', tkc2);
 			_2 ('e', 'c', tkec, 'o', tkeo);
@@ -356,7 +358,7 @@ break;
 			_5 ('n', 'f', tknf, 'a', tkna, 'e', tkxx, 'h', tknh, 's', tkns);
 			_1 ('r', 's', tkrs);
 			_2 ('s', 'o', tkso, 'p', tksp);
-			_1 ('t', 'i', tkti);
+			_2 ('t', 'i', tkti, 'm', tktm);
 			/* */
 			_1 ('A', 'T', tkAT);
 			_2x('B', 'I', tkBI, 'R', tkBR, tkB);
@@ -378,11 +380,15 @@ break;
 				if (flags.W) man_warnx1s("invalid command: %s", buffer);
 				continue;
 			}
-			c = buffer[i++];
+			c = buffer[i];
 			if (c != 0 && !isspace(c)) {
 				if (flags.W) man_warnx1s("invalid command: %s", buffer);
 				continue;
 			}
+			while (isspace((c = buffer[i]))) ++i;
+			cp = buffer + i;
+
+
 			if (flags.W >= 3) switch(type) {
 				case tkIX:
 					man_warnx1s("unsupported macro: .%s", token_names[type]);
@@ -400,23 +406,32 @@ break;
 				case tkxx: continue;
 				case tkcc:
 					/* quotes not supported. */
-					while (isspace(c = buffer[i])) ++i;
 					cc = c == 0 ? '.' : c;
 					continue;
 				case tkc2:
 					/* quotes not supported. */
-					while (isspace(c = buffer[i])) ++i;
 					c2 = c == 0 ? '\'' : c;
 					continue;
 				case tkeo: ec = 0; continue;
 				case tkec:
-					while (isspace(c = buffer[i])) ++i;
 					ec = c == 0 ? '\\' : c;
 					continue;
 
+				case tkab:
+					/* print message to stderr and abort */
+					fputs(c ? cp : "User abort.", stderr);
+					fputs("\n", stderr);
+					exit(1);
+					continue;
+
+				case tktm:
+					/* print message to stderr */
+					if (c) fprintf(stderr, "%s\n", cp);
+					continue;
+
+
 				case tkad:
 					na = 0;
-					while (isspace(c = buffer[i])) ++i;
 					if (c == 'b' || c == 'c' || c == 'l' || c == 'r')
 						ad = c;
 					continue;
@@ -425,7 +440,6 @@ break;
 				case tkhy: {
 					/* .hy # */
 					/* 0 = off, 1 = on, 2,4,8 have other implications */
-					while (isspace(c = buffer[i])) ++i;
 					if (c == '0') hy = 0;
 					else hy = 1;
 					continue;
@@ -434,8 +448,8 @@ break;
 				case tkrs: ns = 0; continue;
 				case tkns: ns = 1; continue;
 
-				case tknf: fi = 0; continue;
-				case tkfi: fi = 1; continue;
+				case tknf: flush(0); fi = 0; continue;
+				case tkfi: flush(0); fi = 1; continue;
 
 				case tkbr:
 					flush(0);
@@ -444,7 +458,7 @@ break;
 					int n;
 					flush(0);
 					if (ns) break;
-					n = get_unit(buffer + i, 1, -1);
+					n = get_unit(cp, 1, -1);
 					while (--n >= 0 ) {
 						fputc('\n', stdout); ++line;
 					}
@@ -457,10 +471,7 @@ break;
 					/* heirloom troff so supports quotes. */
 					/* mandoc and groff do not. */
 					/* groff strips trailing ws; mandoc does not */
-					char *cp;
-					while (isspace(buffer[i])) ++i;
-					cp = buffer + i;
-					if (cp[0]) {
+					if (c) {
 						FILE *fp;
 						if (so_index == MAX_SO-1) {
 							man_warnx("too many .so requests.");
@@ -483,7 +494,7 @@ break;
 					/* default is previous .ll */
 					int n;
 					flush(0);
-					n = get_unit(buffer + i, prev_ll, ll);
+					n = get_unit(cp, prev_ll, ll);
 					set_ll(n);
 					continue;
 				}
@@ -493,7 +504,7 @@ break;
 					/* default is previous .in */
 					int n;
 					flush(0);
-					n = get_unit(buffer + i, prev_in, in);
+					n = get_unit(cp, prev_in, in);
 					set_in(n);
 					continue;
 				}
@@ -503,7 +514,7 @@ break;
 					/* relative to in */
 					int n;
 					flush(0);
-					n = get_unit(buffer + i, -1, in);
+					n = get_unit(cp, -1, in);
 					set_ti(n);
 					continue;
 				}
@@ -511,10 +522,7 @@ break;
 				case tkft: {
 					/* .ft [BRIP123] */
 					/* default = previous */
-					uint_fast8_t c;
 					unsigned ff;
-					while (isspace(buffer[i])) ++i;
-					c = buffer[i];
 					switch(c) {
 						default:
 						case 'P': ff = FONT_P; break;
