@@ -448,8 +448,8 @@ break;
 				case tkrs: ns = 0; continue;
 				case tkns: ns = 1; continue;
 
-				case tknf: fi = 0; continue;
-				case tkfi: fi = 1; continue;
+				case tknf: flush(0); fi = 0; continue;
+				case tkfi: flush(0); fi = 1; continue;
 
 				case tkbr:
 					flush(0);
