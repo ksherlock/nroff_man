@@ -8,6 +8,8 @@
 .Nm
 .Op Fl bi
 .Op Fl I Cm os Ns = Ns Ar name
+.Op Fl T Ar output
+.Op Fl t Ar terminal
 .Op Fl W Ar level
 .Ar
 .Sh DESCRIPTION
@@ -32,6 +34,18 @@ Provide the operating system name, if not provided by the
 or
 .Cm \.UC
 macros.
+.It Fl T Ar output
+Select the output format.
+Supported values for the
+.Ar output
+argument are
+.Cm ascii ,
+.Cm plain ,
+and the default of
+.Cm termcap .
+.It Fl t Ar terminal
+Overrides the terminal type specified in the environment with
+.Ar terminal .
 .It Fl W Ar level
 Set the warning level.
 Warning level 1 warns if unrecognized
@@ -45,6 +59,25 @@ If unspecified,
 .Nm
 reads from standard input.
 .El
+.Ss Output
+Output produced by
+.Fl T Ar termcap
+will use the termcap database for styling bold and italic text.
+.Pp
+Output produced by
+.Fl T Ar ascii
+will use the backspace characters to simulate bold and underline text.
+.Pp
+Output produced by
+.Fl T Ar plain
+will not style text.
+.Sh ENVIRONMENT
+The
+.Ev TERM
+environment variable affect the execution of
+.Nm
+as described in
+.Xr environ 7 .
 .Sh EXIT STATUS
 .Ex -std
 .Sh SEE ALSO
