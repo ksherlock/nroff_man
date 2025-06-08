@@ -48,7 +48,9 @@ void render_init(void) {
 	prev_ftx = FONT_R;
 }
 
-#define _(x) if (x) fputs(x, stdout); break
+
+
+#define _(x) if (x && !flags.T) fputs(x, stdout); break
 
 void set_font(unsigned new_font) {
 
@@ -141,6 +143,8 @@ void set_ll(int new_ll) {
 	width = ll - lm;
 }
 
+
+
 unsigned print(const unsigned char *cp, int fi) {
 	unsigned i;
 	uint_fast8_t prev = 0;
@@ -164,7 +168,18 @@ unsigned print(const unsigned char *cp, int fi) {
 					fputc(c, stdout); length++;
 				}
 				break;
-			default: fputc(c, stdout); length++;
+			default: 
+				if (flags.T == FMT_ASCII) {
+					if (ft == FONT_B) {
+						fputc(c, stdout);
+						fputc(8, stdout);
+					}
+					if (ft == FONT_I) {
+						fputs("_\x08", stdout);
+					}
+				}
+				fputc(c, stdout); length++;
+				break;
 		}
 		prev = c;
 	}
@@ -475,7 +490,18 @@ void flush(unsigned justify) {
 				break;
 			case HYPHEN: case ZWSPACE: break;
 			case NBSPACE: fputc(' ', stdout); break;
-			default: fputc(c, stdout);
+			default:
+				if (flags.T == FMT_ASCII) {
+					if (ft == FONT_B) {
+						fputc(c, stdout);
+						fputc(8, stdout);
+					}
+					if (ft == FONT_I) {
+						fputs("_\x08", stdout);
+					}
+				}
+				fputc(c, stdout);
+				break;
 		}
 	}
 

@@ -61,15 +61,15 @@ static int tputs_helper(int c) {
 	return 1;
 }
 
-void man_init(void) {
+void tc_init(void) {
 	static char buffer[1024];
 	static char buffer2[1024];
-	char *term;
+	const char *term;
 	char *cp;
 	char *pcap;
 	int ok;
 
-	term = getenv("TERM");
+	term = flags.t ? flags.t : getenv("TERM");
 	if (!term || !*term) {
 		warnx("TERM undefined."); return;
 	}

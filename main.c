@@ -11,10 +11,27 @@
 #include <gno/gno.h>
 #endif
 
-static void usage(void) {
+static void usage(int rv) {
 	fputs(
-		"nroff.man [-bih] [-W level] [-I os=name] [file ...]\n",
+		"nroff.man [-bih] [-W level] [-I os=name] [-t terminal] [-T output] [file ...]\n"
+		" -t terminal   set terminal type\n"
+		" -T output     set output type (termcap, ascii, plain)\n"
+		" -h            help\n",
+
 		stdout);
+
+
+	exit(rv);
+}
+
+
+static int parseT(const char *arg) {
+	/* */
+	if (!arg || !*arg) return -1;
+	if (arg[0] == 't' && !strcmp(arg, "termcap")) return FMT_TERMCAP;
+	if (arg[0] == 'a' && !strcmp(arg, "ascii")) return FMT_ASCII;
+	if (arg[0] == 'p' && !strcmp(arg, "plain")) return FMT_PLAIN;
+	return -1;
 }
 
 #ifdef __STACK_CHECK__
@@ -34,11 +51,11 @@ int main(int argc, char **argv) {
     atexit(printStack);
 #endif
 
-	while (( ch = getopt(argc, argv, "m:hW:I:ib")) != -1) {
+	while (( ch = getopt(argc, argv, "m:hW:I:ibt:T:")) != -1) {
 		switch(ch) {
 			case '?': case ':':
-			default: usage(); exit(1);
-			case 'h': usage(); exit(0);
+			default: usage(1);
+			case 'h': usage(0);
 			case 'i': flags.i = 1; break;
 			case 'b': flags.b = 1; break;
 			case 'W':
@@ -55,6 +72,15 @@ int main(int argc, char **argv) {
 				break;
 			case 'm': /* silently accept -man */
 				break;
+
+			case 't':
+				flags.t = optarg;
+				break;
+			case 'T':
+				flags.T = parseT(optarg);
+				if (flags.T < 0) usage(1);
+
+				break;
 		}
 	}
 
@@ -62,7 +88,8 @@ int main(int argc, char **argv) {
 	argv += optind;
 
 
-	man_init();
+	if (flags.T == FMT_TERMCAP)
+		tc_init();
 
 	if (argc == 0) {
 		man(stdin, "stdin");

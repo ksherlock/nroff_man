@@ -19,6 +19,8 @@ extern struct flags {
 	unsigned i;
 	unsigned b;
 	const char *os;
+	const char *t;
+	int T;
 } flags;
 
 enum {
@@ -33,6 +35,11 @@ enum {
 	HYPHEN
 };
 
+enum {
+	FMT_TERMCAP,
+	FMT_ASCII,
+	FMT_PLAIN
+};
 
 enum {
 #define _(x) tk ## x ,
@@ -50,7 +57,7 @@ const unsigned char *read_line(void);
 
 void read_init(FILE *fp, const char *filename);
 void man(FILE *fp, const char *filename);
-void man_init(void);
+void tc_init(void);
 
 
 #define man_warn(msg) man_warnc(errno, msg)
