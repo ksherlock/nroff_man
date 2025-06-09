@@ -5,8 +5,10 @@ LDLIBS = -ltermcap.204
 OBJS = orca/main.a orca/read1.a orca/read2.a orca/read3.a orca/chars.a orca/render.a
 
 
-nroff.man: $(OBJS)
+orca/nroff.man: $(OBJS)
 	$(CC) $^ $(LDLIBS) -o $@
+
+
 
 orca/main.a : NOROOT =
 orca/main.a : CFLAGS += -s 1024
@@ -17,10 +19,19 @@ orca/read1.a : read1.c man.h escape.h xtokens.h
 orca/chars.a : chars.c man.chars.h man.strings.h
 orca/render.a : render.c man.h xtokens.h
 
-.PHONY: clean
+.PHONY: clean shk
 
 clean:
-	$(RM) $(OBJS) nroff.man
+	$(RM) $(OBJS) orca/nroff.man
+
+shk: orca/nroff.man.shk
+
+orca/nroff.man.shk: orca/nroff.man orca/nroff.man.1
+	iix tar cfv -j $@ $^
+
+orca/nroff.man.1 : nroff.man.1 | orca
+	mandoc -I os=GNO -Tman $^ > $@
+	iix chtyp -t txt $@
 
 orca:
 	mkdir orca
