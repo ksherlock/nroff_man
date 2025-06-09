@@ -29,7 +29,7 @@ shk: orca/nroff.man.shk
 orca/nroff.man.shk: orca/nroff.man orca/nroff.man.1
 	iix tar cfv -j $@ $^
 
-orca/nroff.man.1 : nroff.man.1 | orca
+orca/nroff.man.1 : nroff-man.1 | orca
 	mandoc -I os=GNO -Tman $^ > $@
 	iix chtyp -t txt $@
 
