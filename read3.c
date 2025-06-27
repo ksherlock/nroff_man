@@ -572,6 +572,17 @@ void man(FILE *fp, const char *filename) {
 				}
 				break;
 
+			case tkTE:
+				/* end tbl */
+				man_warnx1("TE without TS");
+				break;
+			case tkTS:
+				/* start tbl */
+				flush(0);
+				tbl_start();
+				break;
+
+
 			case tkTEXT:
 				if (!fi) {
 					print(cp, 0);

@@ -372,7 +372,7 @@ break;
 			_2x('P', 'D', tkPD, 'P', tkPP, tkP);
 			_4x('R', 'B', tkRB, 'E', tkRE, 'I', tkRI, 'S', tkRS, tkR);
 			_5 ('S', 'B', tkSB, 'H', tkSH, 'M', tkSM, 'S', tkSS, 'Y', tkSY);
-			_3 ('T', 'H', tkTH, 'P', tkTP, 'Q', tkTQ);
+			_5 ('T', 'H', tkTH, 'P', tkTP, 'Q', tkTQ, 'S', tkTS, 'E', tkTE);
 			_3 ('U', 'C', tkUC, 'E', tkUE, 'R', tkUR);
 			_1 ('Y', 'S', tkYS);
 			}
