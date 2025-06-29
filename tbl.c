@@ -21,6 +21,8 @@ unsigned lines_length;
 unsigned lines_capacity;
 
 
+#define SPECIAL_DASH (char *)1
+
 // body
 // read a line, copy to new buffer
 
@@ -93,6 +95,11 @@ void tbl(void) {
 
 	memset(column_width, 0, sizeof(column_width));
 	memset(column_align, 0, sizeof(column_align));
+
+
+	lines = malloc(sizeof(char *) * MAX_BUFFERED_LINES);
+	if (!lines) err(1,"malloc");
+	line_count = 0;
 
 	for(;;) {
 		int x;
@@ -172,6 +179,8 @@ void tbl(void) {
 
 			continue;
 		}
+
+		// todo: '-', '=' just draw a line.
 
 
 		// a line of data...
