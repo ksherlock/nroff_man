@@ -10,6 +10,15 @@
  * .PP commands may be intermixed and are ignored.
  */
 
+#include <ctype.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "man.h"
+
+
 #define MAX_COLS 8
 static unsigned column_width[8];
 static unsigned column_align[8];
@@ -21,61 +30,24 @@ unsigned lines_length;
 unsigned lines_capacity;
 
 
-#define SPECIAL_DASH (char *)1
-
-// body
-// read a line, copy to new buffer
-
-// byte length, byte length w/o format codes, text ... 
+#define SPECIAL_DASH (unsigned char *)1
+#define SPECIAL_BLANK (unsigned char *)2
 
 
-for (unsigned col = 0, i = 0; ; ++col) {
-	unsigned l = cp[i++];
-	if (!l) break;
-
-	unsigned ll = cp[i++];
-
-	if (ll > column_width[col]) column_width[col] = ll;
-	i += l;
-}
+enum {
+	align_left,
+	align_right,
+	align_center
+};
 
 
-// now render....
+extern unsigned xstrlen(const unsigned char *cp);
+extern unsigned xstrnlen(const unsigned char *cp, unsigned max);
+extern unsigned print(const unsigned char *cp, int fi);
 
-for (unsigned col = 0, i = 0; ; ++col) {
+static char buffer[512]; // todo -- share w/ render.c
 
-	unsigned l = cp[i++];
-	if (!l) break;
-
-	unsigned ll = cp[i++];
-
-	unsigned padding = 0;
-	if (col > 0) padding = 3;
-
-	unsigned w = column_width[col];
-	unsigned sp = w > ll ? w - ll : 0;
-	unsigned align = column_align[col];
-
-
-	switch (align) {
-	case align_left: break;
-	case align_center:
-		padding += sp >> 1;
-		sp = (sp + 1) >> 1;
-		break;
-	case align_right:
-		padding = sp;
-		sp = 0;
-		break;
-	}
-
-	// print the padding. 
-	// print the text...
-	padding = sp;
-	if (sp) // print sp padding.
-}
-
-
+#if 0
 unsigned unformatted_length(char *cp, unsigned start, unsigned end) {
 	unsigned l = 0;
 	while (start < end) {
@@ -84,35 +56,39 @@ unsigned unformatted_length(char *cp, unsigned start, unsigned end) {
 	}
 	return l;
 }
+#endif
 
 void tbl(void) {
 
 
 	int cols = 0;
 	unsigned st = 0;
-	unsigned flag_e = 0;
-	unsigned max_e = 0;
+	unsigned e_flag = 0;
+	unsigned e_width = 0;
 
 	memset(column_width, 0, sizeof(column_width));
 	memset(column_align, 0, sizeof(column_align));
 
+	lines = NULL;
+	lines_capacity = 0;
+	lines_length = 0;
 
-	lines = malloc(sizeof(char *) * MAX_BUFFERED_LINES);
-	if (!lines) err(1,"malloc");
-	line_count = 0;
+
+	lines = malloc(sizeof(char *) * 64);
+	if (!lines) man_err(1,"malloc");
+	lines_capacity = 64;
 
 	for(;;) {
-		int x;
 		const unsigned char *cp = read_text();
 		if (type == tkEOF) {
-			man_warnx1("TS without TE");
+			man_warnx("TS without TE");
 			break;
 		}
 
 		if (type == tkTE) break;
 		if (type == tkPP) continue;
 		if (type != tkTEXT) {
-			man_warnx1("unsupported command within tbl");
+			man_warnx1s("unsupported %s within tbl", token_names[type]);
 			break;
 		}
 
@@ -121,10 +97,11 @@ void tbl(void) {
 		if (!x) continue;
 
 		if (st == 0) {
-			// possible (optional) option string (;-terminated)
+			// (optional) option string (;-terminated)
 			++st;
 			if (cp[x-1] == ';') continue;
 		}
+
 		if (st == 1) {
 
 			// 1+ format strings, final one is '.' terminated.
@@ -142,12 +119,20 @@ void tbl(void) {
 				unsigned c = cp[i];
 				if (c == 0) break;
 				c = tolower(c);
+
+				if (c == ',') {
+					// multiple formats on one line.
+					cols = -1;
+					continue;
+				}
+
 				if (c == '.') {
 					++st;
 					if (cols < 1) {
 						cols = 1;
 						column_align[0] = align_left;
 					}
+					if (cols >= MAX_COLS) cols = MAX_COLS - 1;
 					break;
 				}
 				if (c == 'l' || c == 'r' || c == 'c' || c == 'n' || c == 'a') {
@@ -155,7 +140,6 @@ void tbl(void) {
 				}
 				if (cols < 0 || cols >= MAX_COLS) continue;
 
-				// if (cols == MAX_COLS) continue;
 				switch(c) {
 				case 'l':
 				case 'a': // alphabetic subcolumn
@@ -170,7 +154,7 @@ void tbl(void) {
 					break;
 
 				case 'e':
-					flag_e |= (1 << cols);
+					e_flag |= (1 << cols);
 					break;
 
 				}
@@ -180,8 +164,13 @@ void tbl(void) {
 			continue;
 		}
 
-		// todo: '-', '=' just draw a line.
 
+		if (lines_length == lines_capacity) {
+			char **tmp = realloc(lines, lines_capacity << 1);
+			if (!tmp) man_err(1, "realloc");
+			lines = tmp;
+			lines_capacity <<= 1;
+		}
 
 		// a line of data...
 		// count the columns...
@@ -193,29 +182,44 @@ void tbl(void) {
 			if (c == '\t') ++nc;
 		}
 
-		if (nc > MAX_COLS) nc = MAX_COLS;
+		if (!l) {
+			lines[lines_length++] = SPECIAL_BLANK;
+			continue;
+		}
+
+		// todo: '-', '=' just draw a line.
+		if (l == 1) {
+			if (cp[0] == '_' || cp[0] == '=') {
+				lines[lines_length++] = SPECIAL_DASH;
+				continue;
+			}
+		}
+
+		if (nc > cols) nc = cols;
+
 		// each chunk has 1 byte length, 1 byte length w/o formatting.
-		char *line = malloc(l + nc * 2 + 2);
-		for (unsigned i = 0, j = 0, col = 0; col < nc; ++col) {
+		char *line = malloc(l + cols * 2 + 2);
+		if (!line) man_err(1, "malloc");
+		memset(line, 0, l + cols * 2 + 2);
+		for (unsigned i = 0, j = 0, col = 0, mask = 1; col < nc; ++col, mask <<= 1) {
 
 			unsigned st = i;
 			unsigned c;
 
 			for (;;) { c = cp[i++]; if (c == '\t' || c == 0) break; }
-			unsigned end = i;
+			unsigned end = i - 1;
 
 			line[j++] = end - st; // total length
 
-			unsigned x = unformatted_length(cp, st, end);
+			unsigned x = xstrnlen(cp + st, end);
 			if (x > column_width[col]) column_width[col] = x;
 
-			if (flag_e & (1 << col)) {
-				if (x > max_e) max_e = x;
+			if (e_flag & mask) {
+				if (x > e_width) e_width = x;
 			}
 
 			line[j++] = x;
 			while (st < end) line[j++] = cp[st++];
-			line[j] = 0; // zero out the final entry
 		}
 
 		// todo -- only first N lines to calc width?
@@ -223,21 +227,45 @@ void tbl(void) {
 	}
 
 	// resize e columns?
-	if (flag_e) {
-		for (unsigned col = 0, mask = 1; col < MAX_COLS; ++col, mask <<= 1) {
-			if (flag_e & mask) column_width[col] = max_e;
+	if (e_flag) {
+		for (unsigned col = 0, mask = 1; col < cols; ++col, mask <<= 1) {
+			if (e_flag & mask) column_width[col] = e_width;
 		}
 	}
 
 
+	// calculate the total width (for _)
+	unsigned twidth = -3; // account for extra padding
+	for (unsigned i = 0, mask = 1; i < cols; ++i, mask <<= 1) {
+
+		if (e_flag & mask) {
+			column_width[i] = e_width;
+			twidth += e_width;
+		} else {
+			twidth += column_width[i];
+		}
+		twidth += 3;
+	}
+
 	// now print the buffered table...
 
-	for (unsigned i = 0; i < line_count; ++i) {
+	for (unsigned i = 0; i < lines_length; ++i) {
 		unsigned char *line = lines[i];
 
-		unsigned k = 0;
 
-		unsigned padding = in;
+		if (line == SPECIAL_BLANK) {
+			fputc('\n', stdout);
+			continue;
+		}
+		if (line == SPECIAL_DASH) {
+			for (unsigned j = 0; j < in; ++j) fputc(' ', stdout);
+			for (unsigned j = 0; j < twidth; ++j)
+				fputc('_', stdout);
+			fputc('\n', stdout);
+			continue;
+		}
+
+		unsigned padding = 0;
 		unsigned k = 0;
 		for (unsigned col = 0, offset = 0; col < cols; ++col) {
 			unsigned w = column_width[col];

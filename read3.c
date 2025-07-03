@@ -574,12 +574,12 @@ void man(FILE *fp, const char *filename) {
 
 			case tkTE:
 				/* end tbl */
-				man_warnx1("TE without TS");
+				man_warnx("TE without TS");
 				break;
 			case tkTS:
 				/* start tbl */
 				flush(0);
-				tbl_start();
+				tbl();
 				break;
 
 

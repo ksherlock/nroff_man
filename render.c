@@ -197,6 +197,18 @@ unsigned xstrlen(const unsigned char *cp) {
 	}
 }
 
+unsigned xstrnlen(const unsigned char *cp, unsigned max) {
+
+	unsigned length = 0;
+	unsigned i;
+	for (i = 0; i < max; ++i) {
+		uint_fast8_t c = cp[i];
+		if (!c) return length;
+		if (c <= NBSPACE) length++;
+	}
+	return length;
+}
+
 static unsigned is_sentence(const unsigned char *cp, unsigned offset) {
 	uint_fast8_t c;
 	if (offset == 0) return 0;

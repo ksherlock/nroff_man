@@ -57,6 +57,7 @@ const unsigned char *read_line(void);
 
 void read_init(FILE *fp, const char *filename);
 void man(FILE *fp, const char *filename);
+void tbl(void);
 void tc_init(void);
 
 
