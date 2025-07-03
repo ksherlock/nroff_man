@@ -128,6 +128,7 @@ void tbl(void) {
 
 				if (c == '.') {
 					++st;
+					++cols;
 					if (cols < 1) {
 						cols = 1;
 						column_align[0] = align_left;
@@ -201,6 +202,8 @@ void tbl(void) {
 		char *line = malloc(l + cols * 2 + 2);
 		if (!line) man_err(1, "malloc");
 		memset(line, 0, l + cols * 2 + 2);
+		lines[lines_length++] = line;
+
 		for (unsigned i = 0, j = 0, col = 0, mask = 1; col < nc; ++col, mask <<= 1) {
 
 			unsigned st = i;
@@ -211,7 +214,7 @@ void tbl(void) {
 
 			line[j++] = end - st; // total length
 
-			unsigned x = xstrnlen(cp + st, end);
+			unsigned x = xstrnlen(cp + st, end - st);
 			if (x > column_width[col]) column_width[col] = x;
 
 			if (e_flag & mask) {
@@ -277,6 +280,7 @@ void tbl(void) {
 			unsigned sp = w > l ? w - l : 0;
 
 			switch(align) {
+			default:
 			case align_left:
 				break;
 			case align_right:
@@ -301,6 +305,7 @@ void tbl(void) {
 		}
 
 
+		buffer[k++] = '\n';
 		buffer[k++] = 0;
 		print(buffer, 0);
 
