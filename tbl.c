@@ -61,6 +61,41 @@ unsigned unformatted_length(char *cp, unsigned start, unsigned end) {
 }
 #endif
 
+
+/*
+
+	for n alignment
+	1. rightmost . *adjacent* to a digit
+	2. leftmost zero-width space
+
+	 returns visible string length, 
+ */
+#if 0
+unsigned num_width(const char *cp, unsigned n, int *offset) {
+
+	int zwsp = -1;
+	int dot = -1;
+	unsigned l = 0;
+	int st = 0;
+	for (unsigned i = 0; i < n; ++i) {
+		unsigned c = cp[i];
+		if (c == ZWSPACE && zwsp < 0) zwsp = l;
+		if (c > XSPACE) continue;
+		++l;
+
+		st <<= 2;
+		if (c == '.') st |= 0b01;
+		else if (isdigit(c)) st |= 0b11;
+		st &= 0b1111;
+		if (st == 0b1101) dot = i;
+		if (st == 0b0111) dot = i-1;
+	}
+	if (dot < 0) dot = zwsp;
+	*offset = dot;
+	return l;
+}
+#endif
+
 void tbl(void) {
 
 
@@ -112,13 +147,12 @@ void tbl(void) {
 			// currently, only one line is supported and only alignment is supported
 
 			// todo:
-			// w(num) which will pre-populate the column_width
-			// e - (equal width) set a bit on the equal flag,
-			// after calculating column widths, set all e columns to the max of all e columns.
 
 
 			// format string.  currently just alignment...
 			cols = -1;
+			unsigned w_flag = 0;
+
 			for (unsigned i = 0; ;++i) {
 				unsigned c = cp[i];
 				if (c == 0) break;
@@ -169,27 +203,43 @@ void tbl(void) {
 				case 'w':
 					// followed by unit-less integer -or- (width expression)
 					c = cp[++i];
+					x = 0;
 					if (c == '(') {
 						++i;
-						int x = get_unit(cp + i, 0, 0);
-						column_width[cols] = x;
+						x = get_unit(cp + i, 0, 0);
 						for(;;) {
 							c = cp[++i];
 							if (c == ')' || c == 0) break;
 						}
 					}
 					if (isdigit(c)) {
-						unsigned x = c - '0';
+						x = c - '0';
 						while (isdigit(c = cp[++i])) {
 							x *= 10;
 							x += c - '0';
 						}
-						column_width[cols] = x;
 					}
+					column_width[cols] = x;
+					if (x) w_flag |= (1 << cols);
 					--i;
 					break;
 				}
 				// silently ignore everything else....
+			}
+
+			// e/z/w interaction...
+			// z_flag w/o w_flag is an error...
+			if ((z_flag & w_flag) != z_flag) {
+				z_flag &= w_flag;
+			}
+			if (w_flag & e_flag) {
+				w_flag &= e_flag;
+				for (unsigned i = 0, mask = 1; i < cols; ++i, mask <<= 1) {
+					if (w_flag & mask) {
+						x = column_width[i];
+						if (i > e_width) e_width = x;
+					}
+				}
 			}
 
 			continue;
