@@ -20,8 +20,10 @@
 
 
 #define MAX_COLS 8
-static unsigned column_width[8];
-static unsigned column_align[8];
+static unsigned column_width[MAX_COLS];
+static unsigned column_align[MAX_COLS];
+static int column_n_left[MAX_COLS];
+static int column_n_right[MAX_COLS];
 
 // lines are buffered so we can calculate column widths. 
 // the original tbl itself would only use the first 200 lines, IIRC
@@ -37,7 +39,8 @@ unsigned lines_capacity;
 enum {
 	align_left,
 	align_right,
-	align_center
+	align_center,
+	align_number,
 };
 
 
@@ -66,35 +69,40 @@ unsigned unformatted_length(char *cp, unsigned start, unsigned end) {
 
 	for n alignment
 	1. rightmost . *adjacent* to a digit
-	2. leftmost zero-width space
+	2. rightmost digit
+	3. leftmost zero-width space
 
 	 returns visible string length, 
  */
-#if 0
+
 unsigned num_width(const char *cp, unsigned n, int *offset) {
 
 	int zwsp = -1;
+	int dig = -1;
 	int dot = -1;
 	unsigned l = 0;
 	int st = 0;
 	for (unsigned i = 0; i < n; ++i) {
 		unsigned c = cp[i];
-		if (c == ZWSPACE && zwsp < 0) zwsp = l;
+		if (c == ZWSPACE && zwsp < 0) zwsp = l+1;
 		if (c > XSPACE) continue;
 		++l;
 
 		st <<= 2;
 		if (c == '.') st |= 0b01;
-		else if (isdigit(c)) st |= 0b11;
+		else if (isdigit(c)) {
+			dig = l+1;
+			st |= 0b11;
+		}
 		st &= 0b1111;
-		if (st == 0b1101) dot = i;
-		if (st == 0b0111) dot = i-1;
+		if (st == 0b1101) dot = l;
+		if (st == 0b0111) dot = l-1;
 	}
-	if (dot < 0) dot = zwsp;
+	if (dot < 0) dot = dig;
+	if (zwsp >= 0) dot = zwsp;
 	*offset = dot;
 	return l;
 }
-#endif
 
 void tbl(void) {
 
@@ -107,6 +115,8 @@ void tbl(void) {
 
 	memset(column_width, 0, sizeof(column_width));
 	memset(column_align, 0, sizeof(column_align));
+	memset(column_n_left, 0, sizeof(column_n_left));
+	memset(column_n_right, 0, sizeof(column_n_right));
 
 	lines = NULL;
 	lines_capacity = 0;
@@ -144,12 +154,9 @@ void tbl(void) {
 		if (st == 1) {
 
 			// 1+ format strings, final one is '.' terminated.
-			// currently, only one line is supported and only alignment is supported
+			// currently, only one line is (partially) supported
 
-			// todo:
-
-
-			// format string.  currently just alignment...
+			// format string...
 			cols = -1;
 			unsigned w_flag = 0;
 
@@ -185,8 +192,10 @@ void tbl(void) {
 					column_align[cols] = align_left;
 					break;
 				case 'r':
-				case 'n': // numeric
 					column_align[cols] = align_right;
+					break;
+				case 'n':
+					column_align[cols] = align_number;
 					break;
 				case 'c': 
 					column_align[cols] = align_center;
@@ -294,7 +303,21 @@ void tbl(void) {
 
 			line[j++] = end - st; // total length
 
-			unsigned x = xstrnlen(cp + st, end - st);
+			unsigned x = 0;
+
+			if (column_align[col] == align_number) {
+				int left;
+				x = num_width(cp + st, end - st, &left);
+
+				if (left > 0) {
+					int right = x - left;
+					if (left > column_n_left[col]) column_n_left[col] = left;
+					if (right > column_n_right[col]) column_n_right[col] = right;
+				}
+			} else {
+				x = xstrnlen(cp + st, end - st);
+			}
+
 			if (!(z_flag & mask)) {
 				if (x > column_width[col]) column_width[col] = x;
 			}
@@ -309,6 +332,21 @@ void tbl(void) {
 
 		// todo -- only first N lines to calc width?
 
+	}
+
+	// re-calc n columns:
+	for (unsigned col = 0, mask = 1; col < cols; ++col, mask <<= 1) {
+		if (z_flag & mask) continue;
+		if (column_align[col] == align_number) {
+			unsigned x = column_n_left[col] + column_n_right[col];
+			if (x > column_width[col])
+				column_width[col] = x;
+			// TODO -- adjust left so it's centered iff column_width is larger.
+
+			if ((e_flag & mask) && x > e_width)
+				e_width = x;
+
+		}
 	}
 
 	// resize e columns?
@@ -361,6 +399,7 @@ void tbl(void) {
 
 			unsigned sp = w > l ? w - l : 0;
 
+
 			switch(align) {
 			default:
 			case align_left:
@@ -373,6 +412,22 @@ void tbl(void) {
 				padding += sp >> 1;
 				sp = (sp+1) >> 1;
 				break;
+			case align_number: {
+					int left;
+					int x;
+					num_width(line + offset, l, &left);
+					if (left < 0) {
+						// just center it..
+						padding += sp >> 1;
+						sp = (sp+1) >> 1;
+					} else {
+						x = column_n_left[col] - left;
+						if (x > 0) padding += x;
+						sp = sp - x;
+					}
+				}
+				break;
+
 			}
 
 			for (unsigned i = 0; i < padding; ++i) {
