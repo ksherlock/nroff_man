@@ -45,6 +45,9 @@ extern unsigned xstrlen(const unsigned char *cp);
 extern unsigned xstrnlen(const unsigned char *cp, unsigned max);
 extern unsigned print(const unsigned char *cp, int fi);
 
+extern int get_unit(const unsigned char *arg, int dv, int base);
+
+
 static char buffer[512]; // todo -- share w/ render.c
 
 #if 0
@@ -65,6 +68,7 @@ void tbl(void) {
 	unsigned st = 0;
 	unsigned e_flag = 0;
 	unsigned e_width = 0;
+	unsigned z_flag = 0;
 
 	memset(column_width, 0, sizeof(column_width));
 	memset(column_align, 0, sizeof(column_align));
@@ -157,7 +161,33 @@ void tbl(void) {
 				case 'e':
 					e_flag |= (1 << cols);
 					break;
+				case 'z':
+					z_flag |= (1 << cols);
+					break;
 
+
+				case 'w':
+					// followed by unit-less integer -or- (width expression)
+					c = cp[++i];
+					if (c == '(') {
+						++i;
+						int x = get_unit(cp + i, 0, 0);
+						column_width[cols] = x;
+						for(;;) {
+							c = cp[++i];
+							if (c == ')' || c == 0) break;
+						}
+					}
+					if (isdigit(c)) {
+						unsigned x = c - '0';
+						while (isdigit(c = cp[++i])) {
+							x *= 10;
+							x += c - '0';
+						}
+						column_width[cols] = x;
+					}
+					--i;
+					break;
 				}
 				// silently ignore everything else....
 			}
@@ -215,7 +245,9 @@ void tbl(void) {
 			line[j++] = end - st; // total length
 
 			unsigned x = xstrnlen(cp + st, end - st);
-			if (x > column_width[col]) column_width[col] = x;
+			if (!(z_flag & mask)) {
+				if (x > column_width[col]) column_width[col] = x;
+			}
 
 			if (e_flag & mask) {
 				if (x > e_width) e_width = x;

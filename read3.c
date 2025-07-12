@@ -148,13 +148,6 @@ void tc_init(void) {
 
 
 
-
-
-
-
-
-
-
 static char header[80];
 static char footer[80];
 static char *th_source = NULL;
