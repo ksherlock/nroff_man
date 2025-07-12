@@ -339,9 +339,15 @@ void tbl(void) {
 		if (z_flag & mask) continue;
 		if (column_align[col] == align_number) {
 			unsigned x = column_n_left[col] + column_n_right[col];
-			if (x > column_width[col])
+			unsigned w = column_width[col];
+			if (x > w)
 				column_width[col] = x;
-			// TODO -- adjust left so it's centered iff column_width is larger.
+			else if (x < w) {
+				// adjust left so content will be centered.
+				unsigned sp = (w - x) >> 1;
+				column_n_left[col] += sp;
+				x = w;
+			}
 
 			if ((e_flag & mask) && x > e_width)
 				e_width = x;
