@@ -2,7 +2,7 @@
 
 # Program name
 PROG	= nroff.man
-SRCS	= main.c read1.c read2.c read3.c chars.c
+SRCS	= main.c read1.c read2.c read3.c chars.c render.c tbl.c
 MAIN	= main
 MAINSRC	= main.c
 
@@ -25,3 +25,6 @@ read1.o::	man.h xtokens.h
 read2.o::	man.h xtokens.h
 read3.o::	man.h xtokens.h
 chars.o::	man.chars.h man.strings.h
+render.o::	man.h xtokens.h
+tbl.o::		man.h xtokens.h
+
