@@ -256,10 +256,10 @@ void tbl(void) {
 
 
 		if (lines_length == lines_capacity) {
-			char **tmp = realloc(lines, lines_capacity << 1);
+			lines_capacity <<= 1;
+			char **tmp = realloc(lines, lines_capacity * sizeof(char *));
 			if (!tmp) man_err(1, "realloc");
 			lines = tmp;
-			lines_capacity <<= 1;
 		}
 
 		// a line of data...
