@@ -136,6 +136,7 @@ void tbl(void) {
 
 		if (type == tkTE) break;
 		if (type == tkPP) continue;
+		if (type == tkPD) continue;
 		if (type != tkTEXT) {
 			man_warnx1s("unsupported %s within tbl", token_names[type]);
 			break;
